@@ -32,6 +32,8 @@ For the exact Windows commands and verification checks, see [docs/RUNBOOK.md](do
 
 The backend is designed to be testable before secrets and external services are configured. It returns useful, explicit configuration errors rather than inventing retail data.
 
+For Groq, the default configured model is `openai/gpt-oss-120b`; it is selected because the older Llama model ID is no longer available to the connected account.
+
 ## Retailers
 
 Only these retailers are eligible for live results:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -19,6 +20,7 @@ from backend.services.ollama_embeddings import OllamaEmbeddings
 
 
 router = APIRouter(tags=["chat"])
+logger = logging.getLogger(__name__)
 
 STAGE_LABELS = {
     "searching": "Searching approved Indian retailers...",
@@ -132,9 +134,14 @@ async def chat_socket(websocket: WebSocket) -> None:
                 await websocket.send_json({"type": "error", "message": str(error), "code": "INVALID_MESSAGE"})
             except ServiceConfigurationError as error:
                 await websocket.send_json({"type": "error", "message": str(error), "code": "CONFIGURATION_ERROR"})
-            except Exception:
+            except Exception as error:
+                logger.exception("Chat processing failed")
                 await websocket.send_json(
-                    {"type": "error", "message": "Unable to process that request.", "code": "PROCESSING_ERROR"}
+                    {
+                        "type": "error",
+                        "message": "Unable to process that request.",
+                        "code": "PROCESSING_ERROR",
+                    }
                 )
     except WebSocketDisconnect:
         return
