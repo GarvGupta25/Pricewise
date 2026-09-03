@@ -9,6 +9,7 @@ from typing import Any
 from uuid import UUID
 
 import asyncpg
+from pydantic import BaseModel
 
 
 CACHE_MAX_AGE_HOURS = 48
@@ -186,4 +187,6 @@ class Database:
 def _json_default(value: Any) -> str:
     if isinstance(value, (UUID, datetime)):
         return str(value)
+    if isinstance(value, BaseModel):
+        return value.model_dump(mode="json")
     raise TypeError(f"Cannot serialize {type(value)!r} to JSON")
