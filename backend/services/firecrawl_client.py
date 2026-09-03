@@ -29,7 +29,6 @@ class _ProductExtraction(BaseModel):
     title: str
     brand: str | None = None
     price: int = Field(ge=0, description="Whole INR only")
-    specs: dict[str, Any] = Field(default_factory=dict)
     rating: float | None = None
     review_count: int | None = Field(default=None, ge=0)
 
@@ -103,7 +102,10 @@ class FirecrawlClient:
             return None
         try:
             extracted = _ProductExtraction.model_validate(structured)
-            return ScrapedProduct(source_url=url, **extracted.model_dump())
+            # Firecrawl JSON schemas require fixed object properties. Product
+            # specs remain a database field, but are populated later from a
+            # retailer-specific parser rather than an open-ended LLM object.
+            return ScrapedProduct(source_url=url, specs={}, **extracted.model_dump())
         except ValueError:
             return None
 
