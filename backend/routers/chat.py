@@ -17,6 +17,7 @@ from backend.services.db import Database
 from backend.services.firecrawl_client import FirecrawlClient
 from backend.services.groq_client import GroqClient, ServiceConfigurationError
 from backend.services.ollama_embeddings import OllamaEmbeddings
+from backend.services.razorpay_client import RazorpayClient
 
 
 router = APIRouter(tags=["chat"])
@@ -35,6 +36,10 @@ class UserMessage(BaseModel):
     type: str
     session_id: str = Field(min_length=1, max_length=200)
     content: str = Field(min_length=1, max_length=2_000)
+
+
+class PaymentLinkRequest(BaseModel):
+    product_id: str = Field(min_length=1, max_length=100)
 
 
 async def _get_graph(app: Any):
@@ -156,3 +161,27 @@ async def session_history(session_id: str, request: Request) -> dict[str, Any]:
     if state is None:
         raise HTTPException(status_code=404, detail="Session not found.")
     return json.loads(state) if isinstance(state, str) else state
+
+
+@router.post("/payment-link")
+async def payment_link(payload: PaymentLinkRequest, request: Request) -> dict[str, str]:
+    """Create a Razorpay *test-mode* payment link for one cached product."""
+    await _get_graph(request.app)
+    database = request.app.state.shopping_database
+    product = await database.get_product(payload.product_id)
+    if product is None:
+        raise HTTPException(status_code=404, detail="That product is no longer in the live product cache.")
+    price = product.get("current_price")
+    if not isinstance(price, int):
+        raise HTTPException(status_code=422, detail="This product has no valid current INR price.")
+    settings = get_settings()
+    client = RazorpayClient(settings.razorpay_key_id, settings.razorpay_key_secret)
+    try:
+        link = await client.create_payment_link(
+            product_id=str(product["id"]), title=str(product["title"]), price_inr=price
+        )
+    except ServiceConfigurationError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except (ValueError, RuntimeError) as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+    return {"payment_link_url": link}

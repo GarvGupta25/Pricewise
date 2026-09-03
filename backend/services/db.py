@@ -167,6 +167,17 @@ class Database:
             row = await connection.fetchrow(query, str(product_id))
         return dict(row) if row else None
 
+    async def get_product(self, product_id: UUID | str) -> dict[str, Any] | None:
+        """Fetch the authoritative cached product used for a payment-link amount."""
+        query = """
+            SELECT id, title, source_site, source_url, current_price
+            FROM products
+            WHERE id = $1::uuid
+        """
+        async with self.pool.acquire() as connection:
+            row = await connection.fetchrow(query, str(product_id))
+        return dict(row) if row else None
+
     async def load_conversation(self, session_id: str) -> dict[str, Any] | None:
         async with self.pool.acquire() as connection:
             state = await connection.fetchval(
