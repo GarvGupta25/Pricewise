@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=Path(__file__).with_name(".env"), extra="ignore")
 
     groq_api_key: str | None = None
+    groq_model: str = "llama-3.3-70b-versatile"
     firecrawl_api_key: str | None = None
     database_url: str | None = None
     ollama_base_url: str = "http://localhost:11434"
