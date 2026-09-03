@@ -1,6 +1,7 @@
 """Configuration and deliberately narrow external-service boundaries."""
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -19,7 +20,7 @@ RETAILER_ALLOWLIST = frozenset(
 class Settings(BaseSettings):
     """Runtime settings loaded from ``backend/.env`` or process variables."""
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=Path(__file__).with_name(".env"), extra="ignore")
 
     groq_api_key: str | None = None
     firecrawl_api_key: str | None = None
