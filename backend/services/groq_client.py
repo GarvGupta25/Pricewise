@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import TypeVar
 
 from groq import AsyncGroq
@@ -17,7 +16,7 @@ class ServiceConfigurationError(RuntimeError):
 
 
 class GroqClient:
-    """Make structured-output requests; never interpret free-form JSON as state."""
+    """Use a forced function call; never interpret free-form text as state."""
 
     def __init__(self, api_key: str | None, model: str) -> None:
         self._api_key = api_key
@@ -38,12 +37,20 @@ class GroqClient:
             model=self._model,
             messages=[{"role": "system", "content": system_prompt}, *messages],
             temperature=0,
-            response_format={
-                "type": "json_schema",
-                "json_schema": {"name": schema.__name__, "schema": schema.model_json_schema()},
-            },
+            tools=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "return_structured_response",
+                        "description": "Return the response matching the required schema.",
+                        "parameters": schema.model_json_schema(),
+                    },
+                }
+            ],
+            tool_choice={"type": "function", "function": {"name": "return_structured_response"}},
+            parallel_tool_calls=False,
         )
-        content = response.choices[0].message.content
-        if not content:
+        calls = response.choices[0].message.tool_calls
+        if not calls:
             raise RuntimeError("Groq returned an empty structured response.")
-        return schema.model_validate(json.loads(content))
+        return schema.model_validate_json(calls[0].function.arguments)

@@ -14,19 +14,21 @@ The app deliberately does **not** log into retailers, add to carts, automate che
 ## Build progress
 
 - [x] Project foundation and repository setup
-- [ ] Database schema and data-access layer
-- [ ] Backend graph services and nodes
-- [ ] FastAPI WebSocket API
+- [x] Database schema and data-access layer
+- [x] Backend graph services and nodes
+- [x] FastAPI WebSocket API
 - [x] React comparison dashboard
-- [ ] End-to-end verification and deployment guide
+- [x] Offline end-to-end verification and local run guide
 
-## Local setup (once the code stages are complete)
+## Local setup
 
 1. Install PostgreSQL with the `pgvector` extension, then run `database/schema.sql`.
 2. Install Ollama and run `ollama pull nomic-embed-text`.
 3. Copy `backend/.env.example` to `backend/.env` and add your Groq, Firecrawl, and database credentials.
 4. Create a Python virtual environment, install `backend/requirements.txt`, and run the FastAPI server.
 5. Install the frontend dependencies and run the Vite development server.
+
+For the exact Windows commands and verification checks, see [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 The backend is designed to be testable before secrets and external services are configured. It returns useful, explicit configuration errors rather than inventing retail data.
 
