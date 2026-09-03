@@ -65,7 +65,7 @@ class Database:
         return [dict(row) for row in rows]
 
     async def find_fresh_vector_products(
-        self, embedding: Sequence[float], *, limit: int = 10
+        self, embedding: Sequence[float], *, category: str | None, limit: int = 10
     ) -> list[dict[str, Any]]:
         """Return fresh cache matches ordered by pgvector cosine distance."""
         vector_literal = "[" + ",".join(str(float(value)) for value in embedding) + "]"
@@ -76,12 +76,13 @@ class Database:
             FROM products
             WHERE embedding IS NOT NULL
               AND last_scraped_at >= now() - ($2::text || ' hours')::interval
+              AND ($3::text IS NULL OR lower(category) = lower($3))
             ORDER BY embedding <=> $1::vector
-            LIMIT $3
+            LIMIT $4
         """
         async with self.pool.acquire() as connection:
             rows = await connection.fetch(
-                query, vector_literal, str(CACHE_MAX_AGE_HOURS), limit
+                query, vector_literal, str(CACHE_MAX_AGE_HOURS), category, limit
             )
         return [dict(row) for row in rows]
 

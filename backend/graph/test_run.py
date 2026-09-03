@@ -25,7 +25,7 @@ class DemoEmbeddings:
 
 
 class DemoDatabase:
-    async def find_fresh_vector_products(self, _: list[float]):
+    async def find_fresh_vector_products(self, _: list[float], *, category: str | None):
         return [{"id": "demo-product", "source_site": "croma.com", "source_url": "https://www.croma.com/demo", "title": "Demo Laptop", "brand": "Demo", "current_price": 70000, "specs": {"use_case": "coding"}, "rating": 4.4, "review_count": 25}]
 
     async def get_price_history(self, _: str):

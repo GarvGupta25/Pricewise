@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from backend.graph.state import GraphState
@@ -14,13 +15,21 @@ def _candidate(record: dict[str, Any]) -> dict[str, Any] | None:
     price = record.get("price", record.get("current_price"))
     if not source_site or not isinstance(price, int):
         return None
+    specs = record.get("specs") or {}
+    if isinstance(specs, str):
+        try:
+            specs = json.loads(specs)
+        except json.JSONDecodeError:
+            specs = {}
+    if not isinstance(specs, dict):
+        specs = {}
     return {
         **record,
         "id": str(record["id"]),
         "source_site": source_site,
         "source_url": source_url,
         "price": price,
-        "specs": record.get("specs") or {},
+        "specs": specs,
     }
 
 
@@ -51,7 +60,9 @@ async def hybrid_search_node(
         )
     else:
         query_embedding = await embeddings.embed(query)
-        cached = await database.find_fresh_vector_products(query_embedding)
+        cached = await database.find_fresh_vector_products(
+            query_embedding, category=state["product_category"]
+        )
 
     candidates = [item for row in cached if (item := _candidate(row))]
     if candidates:

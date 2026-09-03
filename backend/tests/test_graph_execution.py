@@ -19,7 +19,7 @@ class FakeEmbeddings:
 
 
 class FakeDatabase:
-    async def find_fresh_vector_products(self, _: list[float]):
+    async def find_fresh_vector_products(self, _: list[float], *, category: str | None):
         return [{"id": "1", "source_site": "amazon.in", "source_url": "https://amazon.in/item", "title": "Laptop", "current_price": 70000, "specs": {}}]
 
     async def get_price_history(self, _: str):
