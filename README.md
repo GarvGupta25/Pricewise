@@ -17,7 +17,7 @@ The app deliberately does **not** log into retailers, add to carts, automate che
 - [ ] Database schema and data-access layer
 - [ ] Backend graph services and nodes
 - [ ] FastAPI WebSocket API
-- [ ] React comparison dashboard
+- [x] React comparison dashboard
 - [ ] End-to-end verification and deployment guide
 
 ## Local setup (once the code stages are complete)

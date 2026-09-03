@@ -1,0 +1,3 @@
+import { Line, LineChart, ResponsiveContainer, Tooltip } from "recharts";
+import type { PricePoint } from "../types";
+export function PriceSparkline({ points }: { points: PricePoint[] }) { if (!points.length) return <p className="text-sm text-slate-500">Price history unavailable</p>; return <div className="h-20"><ResponsiveContainer width="100%" height="100%"><LineChart data={points}><Tooltip formatter={(price) => [`₹${Number(price).toLocaleString("en-IN")}`, "Price"]} labelFormatter={() => "Recorded price"} /><Line type="monotone" dataKey="price" stroke="#f2654a" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div>; }

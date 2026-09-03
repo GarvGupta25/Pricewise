@@ -1,0 +1,5 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base { body { @apply m-0 bg-[#f8f7f4] font-sans antialiased; } button, input { font: inherit; } }
