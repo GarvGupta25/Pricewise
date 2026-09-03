@@ -57,32 +57,65 @@ class FirecrawlClient:
     async def search_products(self, query: str, *, limit: int = 3) -> list[ScrapedProduct]:
         if not self._api_key:
             raise ServiceConfigurationError("FIRECRAWL_API_KEY is required when the cache is stale.")
-        # Search only discovers approved retailer URLs. JSON extraction belongs
-        # to /v2/scrape, not /v2/search (which otherwise returns HTTP 400).
+        # Search only discovers approved retailer URLs. A single broad web
+        # search tends to rank collection pages ("32-inch monitors") above
+        # purchasable pages. Query each retailer separately, then scrape only
+        # URLs that look like individual product pages.
+        # JSON extraction belongs to /v2/scrape, not /v2/search.
         async with httpx.AsyncClient(timeout=60) as client:
-            search_response = await client.post(
-                "https://api.firecrawl.dev/v2/search",
-                headers={"Authorization": f"Bearer {self._api_key}"},
-                json={
-                    "query": query,
-                    "sources": ["web"],
-                    "includeDomains": sorted(RETAILER_ALLOWLIST),
-                    "country": "IN",
-                    "limit": limit,
-                    "ignoreInvalidURLs": True,
-                },
-            )
-            if search_response.is_error:
-                raise RuntimeError(_firecrawl_error("search", search_response))
-            data = search_response.json().get("data", {})
-            pages = data.get("web", []) if isinstance(data, dict) else []
-            urls = [str(page.get("url", "")) for page in pages if canonical_retailer(str(page.get("url", "")))]
+            urls = await self._discover_product_urls(client, query, target_count=limit)
             products: list[ScrapedProduct] = []
-            for url in urls[:limit]:
+            for url in urls:
                 product = await self._scrape_product(client, url)
                 if product is not None:
                     products.append(product)
+                if len(products) >= limit:
+                    break
         return products
+
+    async def _discover_product_urls(self, client: httpx.AsyncClient, query: str, *, target_count: int) -> list[str]:
+        """Return actual product URLs, never retailer/search/category pages."""
+        urls: list[str] = []
+        seen: set[str] = set()
+        retailer_query = _retailer_query(query)
+        # Start with retailers whose search indexes consistently surface
+        # product detail pages. The remaining approved retailers are used if
+        # we still need candidates.
+        retailer_order = ("mdcomputers.in", "croma.com", "reliancedigital.in", "flipkart.com", "amazon.in")
+        for domain in retailer_order:
+            response = await client.post(
+                "https://api.firecrawl.dev/v2/search",
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                json={
+                    "query": f"{retailer_query} buy",
+                    "sources": ["web"],
+                    "includeDomains": [domain],
+                    "country": "IN",
+                    "limit": 6,
+                    "ignoreInvalidURLs": True,
+                },
+            )
+            if response.is_error:
+                # A temporarily blocked retailer should not prevent results
+                # from the other approved retailers.
+                continue
+            data = response.json().get("data", {})
+            pages = data.get("web", []) if isinstance(data, dict) else []
+            for page in pages:
+                url = str(page.get("url", "")) if isinstance(page, dict) else ""
+                title = str(page.get("title", "")) if isinstance(page, dict) else ""
+                if (
+                    url in seen
+                    or not canonical_retailer(url)
+                    or not _looks_like_product_url(url)
+                    or not _looks_relevant(title, retailer_query)
+                ):
+                    continue
+                seen.add(url)
+                urls.append(url)
+                if len(urls) >= target_count * 3:
+                    return urls
+        return urls
 
     async def _scrape_product(self, client: httpx.AsyncClient, url: str) -> ScrapedProduct | None:
         response = await client.post(
@@ -151,3 +184,39 @@ def _price_from_markdown(markdown: str) -> int | None:
     if not match:
         return None
     return int(match.group(1).replace(",", ""))
+
+
+def _looks_like_product_url(url: str) -> bool:
+    """Conservative retailer-agnostic guard against category/search pages."""
+    path = urlparse(url).path.lower().rstrip("/")
+    product_markers = ("/product/", "/dp/", "/p/", "/item/", "/products/")
+    if any(marker in path for marker in product_markers):
+        return True
+    # Flipkart product URLs usually end in an itm identifier rather than
+    # consistently using a product path segment.
+    return "/p/itm" in path or "itm" in path.rsplit("/", 1)[-1]
+
+
+def _retailer_query(query: str) -> str:
+    """Remove field labels and budget wording that confuse retailer search."""
+    query = re.sub(r"\b(?:size|resolution|screen size|display size)\b", " ", query, flags=re.IGNORECASE)
+    query = re.sub(r"\bunder\s+[\d,]+\s+inr\b", " ", query, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", query).strip()
+
+
+def _looks_relevant(title: str, query: str) -> bool:
+    """Reject obvious off-category search hits before spending a scrape credit."""
+    title = title.lower()
+    category_aliases = {
+        "monitor": ("monitor", "display"),
+        "laptop": ("laptop", "notebook", "macbook"),
+        "phone": ("phone", "smartphone", "iphone", "mobile"),
+        "mobile": ("phone", "smartphone", "iphone", "mobile"),
+        "television": ("television", " tv", "smart tv"),
+        "headphone": ("headphone", "earphone", "earbud"),
+    }
+    query_words = set(re.findall(r"[a-z]+", query.lower()))
+    for category, aliases in category_aliases.items():
+        if category in query_words:
+            return any(alias in title for alias in aliases)
+    return True

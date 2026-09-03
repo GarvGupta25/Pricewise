@@ -30,10 +30,10 @@ def test_router_requests_clarification_until_complete_or_cap() -> None:
     state["turn_count"] = 4
     assert router_specific_enough(state) == "hybrid_search"
 
-
-def test_database_json_encoder_handles_postgres_decimal_values() -> None:
-    assert _json_default(Decimal("4.5")) == 4.5
-
     state["turn_count"] = 0
     state["intent_complete"] = True
     assert router_specific_enough(state) == "hybrid_search"
+
+
+def test_database_json_encoder_handles_postgres_decimal_values() -> None:
+    assert _json_default(Decimal("4.5")) == 4.5
