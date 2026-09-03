@@ -11,7 +11,9 @@ class IntentExtraction(BaseModel):
     product_category: str | None = None
     brand: str | None = None
     model_sku: str | None = None
-    specs: dict = Field(default_factory=dict)
+    # Groq may legitimately return null when no product specification was
+    # stated. The node normalizes it to {} before merging graph state.
+    specs: dict | None = None
     budget_min: int | None = None
     budget_max: int | None = None
     urgency: str | None = None
@@ -34,7 +36,7 @@ async def intent_extractor_node(state: GraphState, llm: object) -> dict:
         system_prompt=_SYSTEM_PROMPT, messages=messages, schema=IntentExtraction
     )
     updates = extracted.model_dump()
-    merged_specs = {**state["specs"], **updates.pop("specs")}
+    merged_specs = {**state["specs"], **(updates.pop("specs") or {})}
     result = {key: value for key, value in updates.items() if value is not None}
     result["specs"] = merged_specs
     category = result.get("product_category", state["product_category"])

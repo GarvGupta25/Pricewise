@@ -25,6 +25,17 @@ async def test_intent_node_only_marks_required_missing_fields() -> None:
 
 
 @pytest.mark.asyncio
+async def test_intent_node_normalizes_null_specs_from_structured_model() -> None:
+    state = initial_graph_state("I need a laptop")
+    result = await intent_extractor_node(
+        state, FakeLlm(IntentExtraction(product_category="laptop", specs=None))
+    )
+
+    assert result["specs"] == {}
+    assert result["missing_fields"] == ["use_case", "budget_max"]
+
+
+@pytest.mark.asyncio
 async def test_clarification_asks_once_and_increments_turn_count() -> None:
     state = initial_graph_state("I need a monitor")
     state["missing_fields"] = ["size_inches"]
