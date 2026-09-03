@@ -139,7 +139,7 @@ async def chat_socket(websocket: WebSocket) -> None:
                 await websocket.send_json(
                     {
                         "type": "error",
-                        "message": "Unable to process that request.",
+                        "message": "Live search could not finish: " + str(error)[:240],
                         "code": "PROCESSING_ERROR",
                     }
                 )
