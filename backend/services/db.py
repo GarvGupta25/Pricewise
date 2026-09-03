@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -198,6 +199,8 @@ class Database:
 def _json_default(value: Any) -> str:
     if isinstance(value, (UUID, datetime)):
         return str(value)
+    if isinstance(value, Decimal):
+        return float(value)
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
     raise TypeError(f"Cannot serialize {type(value)!r} to JSON")

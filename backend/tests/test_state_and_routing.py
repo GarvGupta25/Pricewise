@@ -1,5 +1,7 @@
 from backend.graph.routing import router_specific_enough
 from backend.graph.state import PricePoint, ProductResult, initial_graph_state
+from backend.services.db import _json_default
+from decimal import Decimal
 
 
 def test_initial_state_has_every_graph_field() -> None:
@@ -27,6 +29,10 @@ def test_router_requests_clarification_until_complete_or_cap() -> None:
 
     state["turn_count"] = 4
     assert router_specific_enough(state) == "hybrid_search"
+
+
+def test_database_json_encoder_handles_postgres_decimal_values() -> None:
+    assert _json_default(Decimal("4.5")) == 4.5
 
     state["turn_count"] = 0
     state["intent_complete"] = True
