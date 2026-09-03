@@ -23,6 +23,17 @@ class ScrapedProduct(BaseModel):
     review_count: int | None = Field(default=None, ge=0)
 
 
+class _ProductExtraction(BaseModel):
+    """Fields Firecrawl extracts from a known product-page URL."""
+
+    title: str
+    brand: str | None = None
+    price: int = Field(ge=0, description="Whole INR only")
+    specs: dict[str, Any] = Field(default_factory=dict)
+    rating: float | None = None
+    review_count: int | None = Field(default=None, ge=0)
+
+
 _EXTRACTION_PROMPT = (
     "Extract one purchasable product only. Return its displayed current price in whole INR, "
     "not an EMI amount or discount. Do not estimate missing values."
@@ -43,49 +54,61 @@ class FirecrawlClient:
     def __init__(self, api_key: str | None) -> None:
         self._api_key = api_key
 
-    async def search_products(self, query: str, *, per_domain_limit: int = 3) -> list[ScrapedProduct]:
+    async def search_products(self, query: str, *, limit: int = 3) -> list[ScrapedProduct]:
         if not self._api_key:
             raise ServiceConfigurationError("FIRECRAWL_API_KEY is required when the cache is stale.")
-        results: list[ScrapedProduct] = []
+        # Search only discovers approved retailer URLs. JSON extraction belongs
+        # to /v2/scrape, not /v2/search (which otherwise returns HTTP 400).
         async with httpx.AsyncClient(timeout=60) as client:
-            for domain in sorted(RETAILER_ALLOWLIST):
-                response = await client.post(
-                    "https://api.firecrawl.dev/v2/search",
-                    headers={"Authorization": f"Bearer {self._api_key}"},
-                    json={
-                        "query": query,
-                        "includeDomains": [domain],
-                        "country": "IN",
-                        "limit": per_domain_limit,
-                        "scrapeOptions": {
-                            "formats": [
-                                {
-                                    "type": "json",
-                                    "schema": ScrapedProduct.model_json_schema(),
-                                    "prompt": _EXTRACTION_PROMPT,
-                                }
-                            ]
-                        },
-                    },
-                )
-                response.raise_for_status()
-                results.extend(self._structured_products(response.json()))
-        return results
-
-    @staticmethod
-    def _structured_products(payload: dict[str, Any]) -> list[ScrapedProduct]:
-        data = payload.get("data", {})
-        pages = data.get("web", []) if isinstance(data, dict) else data
-        products: list[ScrapedProduct] = []
-        for page in pages if isinstance(pages, list) else []:
-            structured = page.get("json") or page.get("structuredData")
-            if not isinstance(structured, dict):
-                continue
-            structured.setdefault("source_url", page.get("url"))
-            if not canonical_retailer(str(structured.get("source_url", ""))):
-                continue
-            try:
-                products.append(ScrapedProduct.model_validate(structured))
-            except ValueError:
-                continue
+            search_response = await client.post(
+                "https://api.firecrawl.dev/v2/search",
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                json={
+                    "query": query,
+                    "sources": ["web"],
+                    "includeDomains": sorted(RETAILER_ALLOWLIST),
+                    "country": "IN",
+                    "limit": limit,
+                    "ignoreInvalidURLs": True,
+                },
+            )
+            if search_response.is_error:
+                raise RuntimeError(_firecrawl_error("search", search_response))
+            data = search_response.json().get("data", {})
+            pages = data.get("web", []) if isinstance(data, dict) else []
+            urls = [str(page.get("url", "")) for page in pages if canonical_retailer(str(page.get("url", "")))]
+            products: list[ScrapedProduct] = []
+            for url in urls[:limit]:
+                product = await self._scrape_product(client, url)
+                if product is not None:
+                    products.append(product)
         return products
+
+    async def _scrape_product(self, client: httpx.AsyncClient, url: str) -> ScrapedProduct | None:
+        response = await client.post(
+            "https://api.firecrawl.dev/v2/scrape",
+            headers={"Authorization": f"Bearer {self._api_key}"},
+            json={
+                "url": url,
+                "formats": [{"type": "json", "schema": _ProductExtraction.model_json_schema(), "prompt": _EXTRACTION_PROMPT}],
+                "onlyMainContent": True,
+                "timeout": 60000,
+            },
+        )
+        if response.is_error:
+            raise RuntimeError(_firecrawl_error("product scrape", response))
+        data = response.json().get("data", {})
+        structured = data.get("json") if isinstance(data, dict) else None
+        if not isinstance(structured, dict):
+            return None
+        try:
+            extracted = _ProductExtraction.model_validate(structured)
+            return ScrapedProduct(source_url=url, **extracted.model_dump())
+        except ValueError:
+            return None
+
+
+def _firecrawl_error(operation: str, response: httpx.Response) -> str:
+    """Return the provider's small response body without leaking credentials."""
+    body = response.text.replace("\n", " ").strip()[:500]
+    return f"Firecrawl {operation} failed ({response.status_code}): {body or 'no error details returned'}"
