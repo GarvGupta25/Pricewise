@@ -8,6 +8,7 @@ from backend.graph.nodes.historical_price_tracker import historical_price_tracke
 from backend.graph.nodes.holiday_trend import holiday_trend_node
 from backend.graph.nodes.top_k_aggregator import top_k_aggregator_node
 from backend.graph.state import ProductResult, initial_graph_state
+from backend.services.firecrawl_client import _native_product_price, _price_from_markdown
 
 
 @pytest.mark.asyncio
@@ -53,3 +54,8 @@ async def test_calendar_and_decision_are_deterministic() -> None:
     assert calendar["upcoming_sale"].name == "Republic Day Sale"
     assert decide({"price": 12000, "all_time_low": 11000, "price_data_status": "ready"}, calendar["upcoming_sale"]) == "wait"
     assert decide({"price": 11000, "all_time_low": 11000, "price_data_status": "ready"}, None) == "buy_now"
+
+
+def test_firecrawl_price_fallbacks_preserve_whole_inr() -> None:
+    assert _native_product_price({"variants": [{"price": {"amount": 24999}}]}) == 24999
+    assert _price_from_markdown("Now only ₹24,999") == 24999

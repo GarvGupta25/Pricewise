@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 from urllib.parse import urlparse
+import re
 
 import httpx
 from pydantic import BaseModel, Field
@@ -26,9 +27,9 @@ class ScrapedProduct(BaseModel):
 class _ProductExtraction(BaseModel):
     """Fields Firecrawl extracts from a known product-page URL."""
 
-    title: str
+    title: str | None = None
     brand: str | None = None
-    price: int = Field(ge=0, description="Whole INR only")
+    price: int | None = Field(default=None, ge=0, description="Whole INR only")
     rating: float | None = None
     review_count: int | None = Field(default=None, ge=0)
 
@@ -89,7 +90,10 @@ class FirecrawlClient:
             headers={"Authorization": f"Bearer {self._api_key}"},
             json={
                 "url": url,
-                "formats": [{"type": "json", "schema": _ProductExtraction.model_json_schema(), "prompt": _EXTRACTION_PROMPT}],
+                "formats": [
+                    "markdown",
+                    {"type": "json", "schema": _ProductExtraction.model_json_schema(), "prompt": _EXTRACTION_PROMPT},
+                ],
                 "onlyMainContent": True,
                 "timeout": 60000,
             },
@@ -97,15 +101,28 @@ class FirecrawlClient:
         if response.is_error:
             raise RuntimeError(_firecrawl_error("product scrape", response))
         data = response.json().get("data", {})
-        structured = data.get("json") if isinstance(data, dict) else None
-        if not isinstance(structured, dict):
+        if not isinstance(data, dict):
             return None
+        structured = data.get("json") if isinstance(data.get("json"), dict) else {}
         try:
             extracted = _ProductExtraction.model_validate(structured)
+            native_product = data.get("product") if isinstance(data.get("product"), dict) else {}
+            title = extracted.title or native_product.get("title") or data.get("metadata", {}).get("title")
+            price = extracted.price or _native_product_price(native_product) or _price_from_markdown(data.get("markdown", ""))
+            if not isinstance(title, str) or not isinstance(price, int) or price <= 0:
+                return None
             # Firecrawl JSON schemas require fixed object properties. Product
             # specs remain a database field, but are populated later from a
             # retailer-specific parser rather than an open-ended LLM object.
-            return ScrapedProduct(source_url=url, specs={}, **extracted.model_dump())
+            return ScrapedProduct(
+                source_url=url,
+                title=title,
+                brand=extracted.brand or native_product.get("brand"),
+                price=price,
+                specs={},
+                rating=extracted.rating,
+                review_count=extracted.review_count,
+            )
         except ValueError:
             return None
 
@@ -114,3 +131,23 @@ def _firecrawl_error(operation: str, response: httpx.Response) -> str:
     """Return the provider's small response body without leaking credentials."""
     body = response.text.replace("\n", " ").strip()[:500]
     return f"Firecrawl {operation} failed ({response.status_code}): {body or 'no error details returned'}"
+
+
+def _native_product_price(product: dict[str, Any]) -> int | None:
+    variants = product.get("variants")
+    if not isinstance(variants, list):
+        return None
+    for variant in variants:
+        price = variant.get("price", {}) if isinstance(variant, dict) else {}
+        amount = price.get("amount") if isinstance(price, dict) else None
+        if isinstance(amount, (int, float)) and amount > 0:
+            return int(round(amount))
+    return None
+
+
+def _price_from_markdown(markdown: str) -> int | None:
+    """Conservative fallback for a displayed INR price when extraction omits it."""
+    match = re.search(r"(?:₹|INR\s?)(\d{1,3}(?:,\d{2,3})+|\d{3,7})", markdown)
+    if not match:
+        return None
+    return int(match.group(1).replace(",", ""))
