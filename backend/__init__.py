@@ -1,0 +1,1 @@
+"""Shopping Agent backend package."""
