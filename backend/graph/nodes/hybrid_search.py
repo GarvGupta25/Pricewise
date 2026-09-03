@@ -24,24 +24,40 @@ def _candidate(record: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
+def _search_query(state: GraphState) -> str:
+    """Build a complete retailer query after multi-turn clarification.
+
+    ``user_query`` becomes the latest human reply when the graph resumes, so
+    searching it directly would turn a query into only “80000” or “video
+    editing”. Rebuild from extracted state instead.
+    """
+    parts = [state["brand"], state["model_sku"], state["product_category"]]
+    parts.extend(f"{key.replace('_', ' ')} {value}" for key, value in state["specs"].items() if value)
+    if state["budget_max"] is not None:
+        parts.append(f"under {state['budget_max']} INR")
+    query = " ".join(str(part) for part in parts if part)
+    return query or state["user_query"]
+
+
 async def hybrid_search_node(
     state: GraphState, database: object, embeddings: object, scraper: object
 ) -> dict:
     """Search the fresh database cache, scraping only after a complete cache miss."""
+    query = _search_query(state)
     exact_search = bool(state["model_sku"] or (state["brand"] and state["specs"]))
     if exact_search:
         cached = await database.find_fresh_exact_products(
             category=state["product_category"], brand=state["brand"], model_sku=state["model_sku"]
         )
     else:
-        query_embedding = await embeddings.embed(state["user_query"])
+        query_embedding = await embeddings.embed(query)
         cached = await database.find_fresh_vector_products(query_embedding)
 
     candidates = [item for row in cached if (item := _candidate(row))]
     if candidates:
         return {"search_candidates": candidates, "current_stage": "searching"}
 
-    scraped = await scraper.search_products(state["user_query"])
+    scraped = await scraper.search_products(query)
     for product in scraped:
         if not canonical_retailer(product.source_url):
             continue

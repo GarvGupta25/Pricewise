@@ -5,6 +5,7 @@ import pytest
 
 from backend.graph.nodes.final_decision import decide
 from backend.graph.nodes.historical_price_tracker import historical_price_tracker_node
+from backend.graph.nodes.hybrid_search import _search_query
 from backend.graph.nodes.holiday_trend import holiday_trend_node
 from backend.graph.nodes.top_k_aggregator import top_k_aggregator_node
 from backend.graph.state import ProductResult, initial_graph_state
@@ -59,3 +60,9 @@ async def test_calendar_and_decision_are_deterministic() -> None:
 def test_firecrawl_price_fallbacks_preserve_whole_inr() -> None:
     assert _native_product_price({"variants": [{"price": {"amount": 24999}}]}) == 24999
     assert _price_from_markdown("Now only ₹24,999") == 24999
+
+
+def test_search_query_reconstructs_complete_multi_turn_intent() -> None:
+    state = initial_graph_state("25000")
+    state.update(product_category="phone", specs={"primary_use": "camera"}, budget_max=25000)
+    assert _search_query(state) == "phone primary use camera under 25000 INR"
