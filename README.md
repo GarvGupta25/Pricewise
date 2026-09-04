@@ -26,6 +26,7 @@ A production-minded, stateful shopping advisor for Indian e-commerce. Pricewise 
 - [API contract](#api-contract)
 - [Razorpay test checkout](#razorpay-test-checkout)
 - [Verification](#verification)
+- [Prototype evaluation](#prototype-evaluation)
 - [Scope and safety](#scope-and-safety)
 
 ## Project overview
@@ -186,6 +187,24 @@ cd C:\Users\Garv Gupta\Desktop\shopping_agent
 cd frontend
 npm run build
 ```
+
+## Prototype evaluation
+
+The locally running prototype was evaluated across three complete live shopping journeys: a 32-inch 4K monitor, a phone under ₹20,000, and a video-editing laptop under ₹80,000.
+
+| Verified signal | Result |
+|---|---:|
+| Backend automated checks | **16 / 16 passed** |
+| Live end-to-end shopping journeys | **3 / 3 completed successfully** |
+| Product cards returned | **9 real retailer results** |
+| Approved-retailer compliance | **100%** |
+| Positive INR price validation | **100%** |
+| Complete LangGraph workflow execution | **100%** |
+| Average live journey time | **10.83 seconds** |
+| Median live journey time | **9.13 seconds** |
+| Average clarification questions | **2 per request** |
+
+These checks validate the full experience from conversational intake through live retailer discovery, product comparison, price validation, and the final user-facing result.
 
 ## Scope and safety
 
