@@ -18,6 +18,7 @@ A production-minded, stateful shopping advisor for Indian e-commerce. Pricewise 
 - [Architecture](#architecture)
 - [Shopping workflow](#shopping-workflow)
 - [Features](#features)
+- [Prototype walkthrough](#prototype-walkthrough)
 - [Supported retailers](#supported-retailers)
 - [Repository structure](#repository-structure)
 - [Configuration](#configuration)
@@ -67,6 +68,30 @@ flowchart LR
 - Local browser shortlist cart that persists across refreshes.
 - Optional Razorpay **test-mode** Payment Link created from the server’s cached product price.
 - Explicit “insufficient data” handling rather than fabricated price trends.
+
+## Prototype walkthrough
+
+The following screenshots are from the locally running prototype and show the real user flow.
+
+### 1. Demo entry
+
+![Pricewise demo entry screen](docs/images/01-demo-login.png)
+
+### 2. Live advisor workspace
+
+![Pricewise advisor workspace](docs/images/02-advisor-workspace.png)
+
+### 3. Conversational clarification and live analysis
+
+![Pricewise clarification flow and live analysis status](docs/images/03-conversation-progress.png)
+
+### 4. Real retailer comparison results
+
+![Pricewise retailer comparison cards](docs/images/04-live-results.png)
+
+### 5. Persistent shortlist and Razorpay test checkout action
+
+![Pricewise shortlist with Razorpay test checkout](docs/images/05-shortlist-checkout.png)
 
 ## Supported retailers
 
@@ -150,7 +175,7 @@ Open `http://127.0.0.1:5173`. The demo-name screen appears on a fresh browser pr
 
 After live product results are returned, select **Add to shortlist** on a product, then use **Razorpay test checkout** in the cart. Pricewise sends only the product ID to its backend; the backend re-reads the current cached INR price and creates a unique Razorpay Payment Link. The secret never reaches the browser.
 
-This is a demo payment hook, not retailer checkout automation. Payment occurs on Razorpay’s hosted page. Razorpay documents Payment Links as `POST /v1/payment_links`, with the amount in the smallest currency unit and a unique reference ID. [Razorpay’s official API guide](https://razorpay.com/docs/api/payments/payment-links/create-standard/) also notes a 30-link test-mode limit.
+This is a demo payment hook, not retailer checkout automation. Payment occurs on Razorpay’s hosted page. The Razorpay test-link flow has been manually confirmed working in this local prototype; it is intentionally not invoked as part of automated verification. Razorpay documents Payment Links as `POST /v1/payment_links`, with the amount in the smallest currency unit and a unique reference ID. [Razorpay’s official API guide](https://razorpay.com/docs/api/payments/payment-links/create-standard/) also notes a 30-link test-mode limit.
 
 ## Verification
 
@@ -168,33 +193,9 @@ Pricewise does not log into retailer accounts, place items in retailer carts, au
 
 ## Build progress
 
-- [x] Project foundation and repository setup
-- [x] Database schema and data-access layer
-- [x] Backend graph services and nodes
-- [x] FastAPI WebSocket API
-- [x] React comparison dashboard
-- [x] Offline end-to-end verification and local run guide
-
-## Local setup
-
-1. Install PostgreSQL with the `pgvector` extension, then run `database/schema.sql`.
-2. Install Ollama and run `ollama pull nomic-embed-text`.
-3. Copy `backend/.env.example` to `backend/.env` and add your Groq, Firecrawl, and database credentials.
-4. Create a Python virtual environment, install `backend/requirements.txt`, and run the FastAPI server.
-5. Install the frontend dependencies and run the Vite development server.
-
-For the exact Windows commands and verification checks, see [docs/RUNBOOK.md](docs/RUNBOOK.md).
-
-The backend is designed to be testable before secrets and external services are configured. It returns useful, explicit configuration errors rather than inventing retail data.
-
-For Groq, the default configured model is `openai/gpt-oss-120b`; it is selected because the older Llama model ID is no longer available to the connected account.
-
-## Retailers
-
-Only these retailers are eligible for live results:
-
-- amazon.in
-- flipkart.com
-- croma.com
-- reliancedigital.in
-- mdcomputers.in
+- [x] Project foundation and GitHub repository
+- [x] PostgreSQL + pgvector schema and cache layer
+- [x] LangGraph shopping workflow and FastAPI WebSocket API
+- [x] Groq, Ollama, Firecrawl, and Razorpay test-mode integrations
+- [x] React shopping workspace, live progress, comparison cards, and persistent shortlist
+- [x] Local prototype walkthrough captured in this README
