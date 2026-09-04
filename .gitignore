@@ -9,6 +9,7 @@ venv/
 # Node / Vite
 node_modules/
 dist/
+frontend/frontend-dev.log
 
 # Environment and local state
 .env
