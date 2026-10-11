@@ -145,6 +145,8 @@ async def chat_socket(websocket: WebSocket) -> None:
                 await websocket.send_json({"type": "error", "message": str(error), "code": "INVALID_MESSAGE"})
             except ServiceConfigurationError as error:
                 await websocket.send_json({"type": "error", "message": str(error), "code": "CONFIGURATION_ERROR"})
+            except WebSocketDisconnect:
+                raise
             except Exception as error:
                 logger.exception("Chat processing failed")
                 await websocket.send_json(
