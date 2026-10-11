@@ -6,7 +6,7 @@
 2. Install Ollama, then run `ollama pull nomic-embed-text`.
 3. Create `backend/.env` by copying `backend/.env.example` and set `DATABASE_URL`, `GROQ_API_KEY`, and `FIRECRAWL_API_KEY`. Keep keys out of Git.
 
-The project folder is `C:\Users\Garv Gupta\Desktop\shopping_agent`.
+Run all commands from the cloned `Pricewise` repository root unless a step says otherwise.
 
 ## 2. Start the backend
 

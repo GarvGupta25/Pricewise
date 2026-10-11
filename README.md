@@ -70,6 +70,10 @@ flowchart LR
 - Optional Supabase passwordless authentication with a local preview profile fallback.
 - Verified product imagery carried from retailer extraction into result cards.
 - Shortlist that persists locally for guests and syncs to the signed-in Supabase account when configured.
+- Cross-device price alerts, purchase journeys, delivery plans, and after-sales cases protected by Supabase row-level security.
+- Scheduled allowlisted price refreshes for products users actively track.
+- Guided return, exchange, warranty, and delivery-problem drafts plus Google Calendar installation handoff.
+- Browser-native voice intake with a graceful text-only fallback.
 - Optional Razorpay **test-mode** Payment Link created from the server’s cached product price.
 - Explicit “insufficient data” handling rather than fabricated price trends.
 
@@ -159,7 +163,7 @@ Prerequisites: Python 3.11+, Node 20+, PostgreSQL with pgvector, Ollama with `no
 
 ```powershell
 # one-time Python dependencies
-cd C:\Users\Garv Gupta\Desktop\shopping_agent
+cd Pricewise
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
 
@@ -170,7 +174,7 @@ python -m venv .venv
 In a second terminal:
 
 ```powershell
-cd C:\Users\Garv Gupta\Desktop\shopping_agent\frontend
+cd Pricewise\frontend
 npm install
 npm run dev
 ```
@@ -185,6 +189,7 @@ Open `http://127.0.0.1:5173`. The demo-name screen appears on a fresh browser pr
 | `WS` | `/ws/chat` | Conversation, graph stage events, clarification pauses, and final results. |
 | `GET` | `/session/{session_id}/history` | Restores a persisted graph state. |
 | `POST` | `/payment-link` | Creates a server-side Razorpay test Payment Link for one cached product. |
+| `POST` | `/products/prices` | Refreshes the browser’s saved-product price snapshots from authoritative cache data. |
 
 ## Razorpay test checkout
 
@@ -195,12 +200,20 @@ This is a demo payment hook, not retailer checkout automation. Payment occurs on
 ## Verification
 
 ```powershell
-cd C:\Users\Garv Gupta\Desktop\shopping_agent
+cd Pricewise
 .\.venv\Scripts\python.exe -m pytest backend\tests -q
 .\.venv\Scripts\python.exe -m backend.graph.test_run
 cd frontend
 npm run build
 ```
+
+Tracked prices can be refreshed from a trusted scheduler with:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.jobs.refresh_prices
+```
+
+Deployment-ready Dockerfiles are provided for the FastAPI backend and the React/nginx frontend. Build them from the repository root so their copy paths resolve correctly.
 
 ## Prototype evaluation
 
@@ -208,7 +221,7 @@ The locally running prototype was evaluated across three complete live shopping 
 
 | Verified signal | Result |
 |---|---:|
-| Backend automated checks | **16 / 16 passed** |
+| Backend automated checks | **22 / 22 passed** |
 | Live end-to-end shopping journeys | **3 / 3 completed successfully** |
 | Product cards returned | **9 real retailer results** |
 | Approved-retailer compliance | **100%** |
@@ -231,4 +244,9 @@ Pricewise does not log into retailer accounts, place items in retailer carts, au
 - [x] LangGraph shopping workflow and FastAPI WebSocket API
 - [x] Groq, Ollama, Firecrawl, and Razorpay test-mode integrations
 - [x] React shopping workspace, live progress, comparison cards, and persistent shortlist
+- [x] Product decision pages, shopper preferences, voice input, alerts, orders, delivery, and after-sales workspaces
+- [x] Supabase RLS persistence and scheduled tracked-price refresh
+- [x] Deployment containers and production runbook
 - [x] Local prototype walkthrough captured in this README
+
+See [`PRODUCT_PLAN.md`](PRODUCT_PLAN.md) for the completed scope and the integrations that require provider credentials or commercial access.
