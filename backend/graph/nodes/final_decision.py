@@ -5,13 +5,13 @@ from __future__ import annotations
 import json
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.graph.state import GraphState
 
 
 class FinalWording(BaseModel):
-    response: str
+    response: str = Field(min_length=1, max_length=1_500)
 
 
 def decide(

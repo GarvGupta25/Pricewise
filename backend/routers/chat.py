@@ -40,7 +40,7 @@ class UserMessage(BaseModel):
 
 
 class PaymentLinkRequest(BaseModel):
-    product_id: str = Field(min_length=1, max_length=100)
+    product_id: UUID
 
 
 class ProductPricesRequest(BaseModel):
@@ -150,7 +150,7 @@ async def chat_socket(websocket: WebSocket) -> None:
                 await websocket.send_json(
                     {
                         "type": "error",
-                        "message": "Live search could not finish: " + str(error)[:240],
+                        "message": "Live search could not finish. Please try again.",
                         "code": "PROCESSING_ERROR",
                     }
                 )

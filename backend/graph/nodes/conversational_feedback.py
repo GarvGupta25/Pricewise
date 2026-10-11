@@ -1,12 +1,12 @@
 """One-question clarification node; the graph pauses immediately afterwards."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.graph.state import GraphState
 
 
 class Clarification(BaseModel):
-    question: str
+    question: str = Field(min_length=3, max_length=240)
 
 
 async def conversational_feedback_node(state: GraphState, llm: object) -> dict:
