@@ -64,6 +64,7 @@ function SiteHeader() {
         <NavLink to="/advisor">Ask Pricewise</NavLink>
         <NavLink to="/saved">Saved{cartCount ? ` ${cartCount}` : ""}</NavLink>
         <NavLink className="notification-link" to="/notifications" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}>Alerts{unreadCount ? <b>{unreadCount}</b> : null}</NavLink>
+        <NavLink to="/orders">Orders</NavLink>
       </nav>
       <Link className="account-link" to="/account">
         <span className="account-avatar" aria-hidden="true">{loading ? "·" : String(displayName).charAt(0).toUpperCase()}</span>
@@ -154,6 +155,7 @@ function AdvisorPage() {
   const addToCart = useSessionStore((state) => state.addToCart);
   const removeFromCart = useSessionStore((state) => state.removeFromCart);
   const setError = useSessionStore((state) => state.setError);
+  const startCheckout = useSessionStore((state) => state.startCheckout);
   const { saveProduct, removeSaved } = useAuth();
   const { connect, sendMessage, stage, finalResult, error, isConnected } = useChatSocket();
   const starter = new URLSearchParams(location.search).get("prompt") ?? "";
@@ -181,7 +183,7 @@ function AdvisorPage() {
             <span className="signal-dot" aria-hidden="true" />
             <div><strong>{isConnected ? "Advisor connected" : "Connecting advisor"}</strong><p>{isConnected ? "Ready for a new decision" : "The workspace will unlock when connected"}</p></div>
           </div>
-          <CartDrawer items={cart} onRemove={(id) => { removeFromCart(id); removeSaved(id).catch(() => setError("Removed locally, but account sync failed.")); }} compact />
+          <CartDrawer items={cart} onRemove={(id) => { removeFromCart(id); removeSaved(id).catch(() => setError("Removed locally, but account sync failed.")); }} onCheckoutStarted={startCheckout} compact />
         </aside>
       </div>
     </main>
@@ -192,11 +194,12 @@ function SavedPage() {
   const cart = useSessionStore((state) => state.cart);
   const removeFromCart = useSessionStore((state) => state.removeFromCart);
   const setError = useSessionStore((state) => state.setError);
+  const startCheckout = useSessionStore((state) => state.startCheckout);
   const { removeSaved } = useAuth();
   return (
     <main className="page-shell">
       <header className="page-intro"><p className="kicker">Saved & tracking</p><h1>Your decisions, held in one place.</h1><p>Products saved in this browser remain here while account-backed tracking is being built.</p></header>
-      <CartDrawer items={cart} onRemove={(id) => { removeFromCart(id); removeSaved(id).catch(() => setError("Removed locally, but account sync failed.")); }} />
+      <CartDrawer items={cart} onRemove={(id) => { removeFromCart(id); removeSaved(id).catch(() => setError("Removed locally, but account sync failed.")); }} onCheckoutStarted={startCheckout} />
     </main>
   );
 }
@@ -214,6 +217,35 @@ function NotificationsPage() {
           <span className="drop-badge">Price drop</span><div><h3>{item.title}</h3><p><s>₹{item.previousPrice.toLocaleString("en-IN")}</s><strong>₹{item.currentPrice.toLocaleString("en-IN")}</strong><em>Save ₹{(item.previousPrice - item.currentPrice).toLocaleString("en-IN")}</em></p></div><Link to={`/product/${encodeURIComponent(item.productId)}`}>Review decision <span aria-hidden="true">→</span></Link>
         </li>)}</ol>}
       </section>
+    </main>
+  );
+}
+
+function OrdersPage() {
+  const orders = useSessionStore((state) => state.orders);
+  const updateOrder = useSessionStore((state) => state.updateOrder);
+  const savePlan = (event: FormEvent<HTMLFormElement>, orderId: string) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    updateOrder(orderId, { deliveryDate: String(data.get("deliveryDate") || ""), installationAt: String(data.get("installationAt") || "") });
+  };
+  const calendarUrl = (title: string, date: string) => {
+    const start = new Date(date);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const format = (value: Date) => value.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Install ${title}`)}&dates=${format(start)}/${format(end)}&details=${encodeURIComponent("Installation planned with Pricewise")}`;
+  };
+  return (
+    <main className="page-shell">
+      <header className="page-intro"><p className="kicker">Purchase companion</p><h1>From checkout to setup.</h1><p>Keep the handoff honest: confirm your retailer purchase, plan delivery, and reserve an installation window without losing the decision context.</p></header>
+      {!orders.length ? <section className="orders-empty"><h2>No purchase journey yet.</h2><p>Open a test checkout from a saved product and it will appear here.</p><Link className="button button-primary" to="/saved">View saved products</Link></section> : <section className="orders-list" aria-label="Purchase journeys">{orders.map((order) => <article className="order-card" key={order.orderId}>
+        <header><div><p className="kicker">{order.source_site}</p><h2>{order.title}</h2></div><span className={`order-status order-status-${order.status}`}>{order.status.replace("_", " ")}</span></header>
+        <div className="order-meta"><span>Order value <strong>₹{order.current_price.toLocaleString("en-IN")}</strong></span><span>Started <strong>{new Date(order.createdAt).toLocaleDateString("en-IN")}</strong></span></div>
+        {order.status === "checkout_started" && <div className="order-step"><div><h3>Did the retailer confirm payment?</h3><p>Pricewise cannot see the retailer’s payment status yet. Confirm only after you receive their order confirmation.</p></div><button className="button button-primary" onClick={() => updateOrder(order.orderId, { status: "ordered" })}>Yes, order confirmed</button></div>}
+        {order.status !== "checkout_started" && <form className="fulfilment-form" onSubmit={(event) => savePlan(event, order.orderId)}><label>Expected delivery<input type="date" name="deliveryDate" defaultValue={order.deliveryDate} min={new Date().toISOString().slice(0, 10)} /></label><label>Preferred installation<input type="datetime-local" name="installationAt" defaultValue={order.installationAt} /></label><button type="submit">Save plan</button></form>}
+        {order.status === "ordered" && <div className="order-actions">{order.installationAt && <a href={calendarUrl(order.title, order.installationAt)} target="_blank" rel="noreferrer">Add installation to Google Calendar <span aria-hidden="true">↗</span></a>}<button onClick={() => updateOrder(order.orderId, { status: "delivered" })}>Mark delivered</button></div>}
+        {order.status === "delivered" && <div className="delivered-note"><span aria-hidden="true">✓</span><div><strong>Delivered</strong><p>Your after-sales workspace is ready if anything needs attention.</p></div></div>}
+      </article>)}</section>}
     </main>
   );
 }
@@ -281,6 +313,7 @@ export default function App() {
         <Route path="/product/:productId" element={<ProductDecisionPage />} />
         <Route path="/saved" element={<SavedPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/orders" element={<OrdersPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

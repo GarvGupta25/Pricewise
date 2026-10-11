@@ -16,6 +16,13 @@ export type PriceNotification = {
   createdAt: string;
   read: boolean;
 };
+export type OrderRecord = SavedProduct & {
+  orderId: string;
+  status: "checkout_started" | "ordered" | "delivered";
+  createdAt: string;
+  deliveryDate?: string;
+  installationAt?: string;
+};
 
 type SessionState = {
   sessionId: string;
@@ -28,6 +35,7 @@ type SessionState = {
   preferences: ShopperPreferences;
   cart: SavedProduct[];
   notifications: PriceNotification[];
+  orders: OrderRecord[];
   addMessage: (message: ChatMessage) => void;
   setStage: (stage: string | null) => void;
   setResult: (result: FinalResult | null) => void;
@@ -40,6 +48,8 @@ type SessionState = {
   removeFromCart: (id: string) => void;
   applyPriceRefresh: (products: SavedProduct[]) => void;
   markNotificationsRead: () => void;
+  startCheckout: (product: SavedProduct) => void;
+  updateOrder: (orderId: string, update: Partial<Pick<OrderRecord, "status" | "deliveryDate" | "installationAt">>) => void;
 };
 
 export const useSessionStore = create<SessionState>()(persist((set) => ({
@@ -53,6 +63,7 @@ export const useSessionStore = create<SessionState>()(persist((set) => ({
   preferences: { shoppingStyle: "balanced", budgetFlexibility: "strict" },
   cart: [],
   notifications: [],
+  orders: [],
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
   setStage: (stage) => set({ stage }),
   setResult: (result) => set({ result }),
@@ -84,7 +95,9 @@ export const useSessionStore = create<SessionState>()(persist((set) => ({
     };
   }),
   markNotificationsRead: () => set((state) => ({ notifications: state.notifications.map((item) => ({ ...item, read: true })) })),
+  startCheckout: (product) => set((state) => ({ orders: [{ ...product, orderId: crypto.randomUUID(), status: "checkout_started", createdAt: new Date().toISOString() }, ...state.orders] })),
+  updateOrder: (orderId, update) => set((state) => ({ orders: state.orders.map((order) => order.orderId === orderId ? { ...order, ...update } : order) })),
 }), {
   name: "pricewise-preferences",
-  partialize: (state) => ({ demoUser: state.demoUser, preferences: state.preferences, cart: state.cart, notifications: state.notifications, result: state.result }),
+  partialize: (state) => ({ demoUser: state.demoUser, preferences: state.preferences, cart: state.cart, notifications: state.notifications, orders: state.orders, result: state.result }),
 }));

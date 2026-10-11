@@ -291,6 +291,34 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .notification-list em { color: var(--green); font-size: 10px; font-style: normal; font-weight: 700; }
 .notification-list a { color: #c7c7ce; text-decoration: none; font-size: 11px; font-weight: 730; }
 
+.orders-empty { padding: clamp(32px, 6vw, 70px); border: 1px solid var(--line); border-radius: 28px; background: #111116; }
+.orders-empty h2 { margin: 0; font-size: 32px; letter-spacing: -.045em; }
+.orders-empty p { margin: 12px 0 25px; color: #8d8d97; }
+.orders-list { display: grid; gap: 16px; }
+.order-card { padding: clamp(24px, 4vw, 40px); border: 1px solid var(--line); border-radius: 25px; background: #111116; }
+.order-card > header { display: flex; justify-content: space-between; gap: 25px; align-items: start; }
+.order-card h2 { margin: 9px 0 0; font-size: clamp(23px, 3vw, 36px); letter-spacing: -.045em; }
+.order-status { padding: 8px 10px; border-radius: 999px; background: rgba(246,199,106,.11); color: var(--amber); font-size: 9px; font-weight: 800; text-transform: capitalize; white-space: nowrap; }
+.order-status-ordered { background: rgba(155,135,245,.12); color: var(--violet-bright); }
+.order-status-delivered { background: rgba(100,210,161,.11); color: var(--green); }
+.order-meta { display: flex; flex-wrap: wrap; gap: 12px 35px; margin-top: 25px; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.order-meta span { color: #777781; font-size: 11px; }
+.order-meta strong { margin-left: 6px; color: #d4d4da; }
+.order-step { display: flex; justify-content: space-between; align-items: center; gap: 35px; padding-top: 25px; }
+.order-step h3 { margin: 0; font-size: 15px; }
+.order-step p { max-width: 590px; margin: 7px 0 0; color: #85858f; font-size: 12px; line-height: 1.55; }
+.order-step .button { flex: 0 0 auto; }
+.fulfilment-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; padding-top: 25px; }
+.fulfilment-form label { color: #a0a0aa; font-size: 10px; font-weight: 700; }
+.fulfilment-form input { display: block; width: 100%; min-height: 46px; margin-top: 8px; padding: 0 12px; border: 1px solid var(--line); border-radius: 11px; background: #08080a; color: #fff; color-scheme: dark; }
+.fulfilment-form button, .order-actions button { min-height: 46px; padding: 0 16px; border: 0; border-radius: 11px; background: #eeeafc; color: #17131f; cursor: pointer; font-size: 11px; font-weight: 750; }
+.order-actions { display: flex; justify-content: flex-end; align-items: center; gap: 18px; margin-top: 18px; }
+.order-actions a { color: var(--violet-bright); text-decoration: none; font-size: 11px; font-weight: 700; }
+.delivered-note { display: flex; gap: 14px; align-items: center; margin-top: 22px; padding: 16px; border-radius: 15px; background: rgba(100,210,161,.07); }
+.delivered-note > span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(100,210,161,.14); color: var(--green); }
+.delivered-note strong { font-size: 12px; }
+.delivered-note p { margin: 4px 0 0; color: #85858f; font-size: 11px; }
+
 .account-page { display: grid; place-items: center; min-height: 75vh; padding: 100px 20px; background: radial-gradient(circle at 50% 20%, rgba(107,82,215,.16), transparent 32%); }
 .account-panel { width: min(100%, 540px); padding: clamp(28px, 5vw, 48px); border: 1px solid var(--line); border-radius: 28px; background: rgba(17,17,22,.88); }
 .account-panel h1 { margin: 16px 0 15px; font-size: clamp(38px, 5vw, 58px); letter-spacing: -.06em; line-height: .98; }
@@ -385,6 +413,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .decision-verdict { grid-template-columns: 1fr; gap: 30px; border-radius: 24px; }
   .saved-panel li { display: block; }
   .notification-list li { grid-template-columns: 1fr; gap: 10px; }
+  .order-card > header, .order-step { align-items: stretch; flex-direction: column; }
+  .fulfilment-form { grid-template-columns: 1fr; }
+  .order-actions { align-items: stretch; flex-direction: column; }
+  .order-actions button { width: 100%; }
   .saved-actions { margin-top: 14px; }
   .site-footer { grid-template-columns: 1fr auto; margin-bottom: 75px; }
   .site-footer p { display: none; }

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 type CartItem = { id: string; title: string; source_site: string; current_price: number };
 const apiUrl = import.meta.env.VITE_API_HTTP_URL ?? "http://127.0.0.1:8000";
 
-export function CartDrawer({ items, onRemove, compact = false }: { items: CartItem[]; onRemove: (id: string) => void; compact?: boolean }) {
+export function CartDrawer({ items, onRemove, onCheckoutStarted, compact = false }: { items: CartItem[]; onRemove: (id: string) => void; onCheckoutStarted?: (item: CartItem) => void; compact?: boolean }) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const checkout = async (item: CartItem) => {
@@ -14,6 +14,7 @@ export function CartDrawer({ items, onRemove, compact = false }: { items: CartIt
       const body = await response.json();
       if (!response.ok) throw new Error(body.detail ?? "Unable to create payment link.");
       window.open(body.payment_link_url, "_blank", "noopener,noreferrer");
+      onCheckoutStarted?.(item);
       setMessage("Razorpay test link opened in a new tab.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to create payment link."); }
     finally { setLoadingId(null); }
