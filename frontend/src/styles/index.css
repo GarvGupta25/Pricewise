@@ -279,6 +279,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .account-form { display: grid; gap: 10px; margin-top: 30px; }
 .account-form label { font-size: 12px; font-weight: 700; }
 .account-form input { width: 100%; min-height: 52px; padding: 0 15px; border: 1px solid var(--line); border-radius: 13px; background: #08080a; color: #fff; }
+.preference-field { margin: 13px 0 0; padding: 0; border: 0; }
+.preference-field legend { margin-bottom: 9px; font-size: 12px; font-weight: 700; }
+.preference-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.preference-options-two { grid-template-columns: repeat(2, 1fr); }
+.preference-options label { position: relative; display: grid; place-items: center; min-height: 49px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; color: #898993; cursor: pointer; font-size: 11px; font-weight: 700; text-align: center; transition: border-color .18s ease, background .18s ease, color .18s ease; }
+.preference-options label:hover { border-color: rgba(181,167,255,.45); }
+.preference-options label.selected { border-color: rgba(181,167,255,.55); background: rgba(155,135,245,.12); color: #e2ddff; }
+.preference-options input { position: absolute; width: 1px; min-height: 1px; opacity: 0; pointer-events: none; }
 .account-form .button { margin-top: 4px; }
 .form-success { margin: 7px 0 0; color: var(--green); font-size: 12px; }
 .signout-button { margin-top: 20px; padding: 8px 0; border: 0; background: transparent; color: #a7a7b0; cursor: pointer; font-size: 12px; font-weight: 700; }

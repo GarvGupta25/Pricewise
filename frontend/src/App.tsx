@@ -184,8 +184,12 @@ function SavedPage() {
 function AccountPage() {
   const currentUser = useSessionStore((state) => state.demoUser);
   const setUser = useSessionStore((state) => state.setUser);
-  const { configured, loading, session, sendMagicLink, signOut, updateDisplayName } = useAuth();
+  const storedPreferences = useSessionStore((state) => state.preferences);
+  const setPreferences = useSessionStore((state) => state.setPreferences);
+  const { configured, loading, session, sendMagicLink, signOut, updateProfile } = useAuth();
   const [name, setName] = useState(String(session?.user.user_metadata.display_name || currentUser || ""));
+  const [shoppingStyle, setShoppingStyle] = useState(storedPreferences.shoppingStyle);
+  const [budgetFlexibility, setBudgetFlexibility] = useState(storedPreferences.budgetFlexibility);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -194,8 +198,11 @@ function AccountPage() {
     event.preventDefault(); setStatus(null); setBusy(true);
     try {
       if (configured && !session) { await sendMagicLink(email.trim()); setStatus("Check your email for a secure sign-in link."); }
-      else if (configured) { await updateDisplayName(name.trim()); setStatus("Profile updated."); }
-      else { setUser(name.trim()); setStatus("Preview profile saved on this device."); }
+      else {
+        const preferences = { shoppingStyle, budgetFlexibility };
+        if (configured) await updateProfile(name.trim(), preferences);
+        setUser(name.trim()); setPreferences(preferences); setStatus(configured ? "Profile updated." : "Preview profile saved on this device.");
+      }
     } catch (error) { setStatus(error instanceof Error ? error.message : "Unable to update your account."); }
     finally { setBusy(false); }
   };
@@ -206,7 +213,15 @@ function AccountPage() {
         <h1 id="account-title">{session ? "Good to have you here." : "Make the experience yours."}</h1>
         <p>{configured ? session ? `Signed in as ${session.user.email}. Your authenticated profile can follow you across devices.` : "Use a magic link to sign in without a password. We’ll send it only to the address you enter." : "Supabase is not configured in this environment, so your preview name and shortlist stay in this browser."}</p>
         <form onSubmit={submit} className="account-form">
-          {configured && !session ? <><label htmlFor="account-email">Email address</label><input id="account-email" type="email" required value={email} onChange={(event) => { setEmail(event.target.value); setStatus(null); }} placeholder="you@example.com" autoComplete="email" /></> : <><label htmlFor="profile-name">Your name</label><input id="profile-name" required value={name} onChange={(event) => { setName(event.target.value); setStatus(null); }} placeholder="e.g. Garv" autoComplete="name" /></>}
+          {configured && !session ? <><label htmlFor="account-email">Email address</label><input id="account-email" type="email" required value={email} onChange={(event) => { setEmail(event.target.value); setStatus(null); }} placeholder="you@example.com" autoComplete="email" /></> : <>
+            <label htmlFor="profile-name">Your name</label><input id="profile-name" required value={name} onChange={(event) => { setName(event.target.value); setStatus(null); }} placeholder="e.g. Garv" autoComplete="name" />
+            <fieldset className="preference-field"><legend>How do you usually choose?</legend><div className="preference-options">
+              {([['best_value', 'Best value'], ['balanced', 'Balanced'], ['premium', 'Premium']] as const).map(([value, label]) => <label key={value} className={shoppingStyle === value ? "selected" : ""}><input type="radio" name="shopping-style" value={value} checked={shoppingStyle === value} onChange={() => setShoppingStyle(value)} /><span>{label}</span></label>)}
+            </div></fieldset>
+            <fieldset className="preference-field"><legend>Budget flexibility</legend><div className="preference-options preference-options-two">
+              {([['strict', 'Stay within it'], ['flexible', 'Stretch for the right fit']] as const).map(([value, label]) => <label key={value} className={budgetFlexibility === value ? "selected" : ""}><input type="radio" name="budget-flexibility" value={value} checked={budgetFlexibility === value} onChange={() => setBudgetFlexibility(value)} /><span>{label}</span></label>)}
+            </div></fieldset>
+          </>}
           <button type="submit" disabled={busy || loading} className="button button-primary">{busy ? "Working…" : configured && !session ? "Email me a sign-in link" : "Save profile"}</button>
           {status && <p className="form-success" role="status">{status}</p>}
         </form>

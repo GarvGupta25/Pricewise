@@ -17,7 +17,20 @@ export function useChatSocket() {
       if (message.type === "error") useSessionStore.getState().setError(message.message ?? "Something went wrong."); };
     ws.onclose = () => { useSessionStore.getState().setConnected(false); if (!closedByApp.current) { useSessionStore.getState().setError("Connection lost. Reconnecting…"); retry.current = window.setTimeout(() => connect(sessionId), 1500); } };
   }, []);
-  const sendMessage = useCallback((content: string) => { const state = useSessionStore.getState(); if (!content.trim()) return; if (socket.current?.readyState !== WebSocket.OPEN) { state.setError("Connecting to the advisor… please try again."); return; } state.addMessage({ role: "user", content }); state.setError(null); socket.current.send(JSON.stringify({ type: "user_message", session_id: state.sessionId, content })); }, []);
+  const sendMessage = useCallback((content: string) => {
+    const state = useSessionStore.getState();
+    if (!content.trim()) return;
+    if (socket.current?.readyState !== WebSocket.OPEN) { state.setError("Connecting to the advisor… please try again."); return; }
+    const isNewDecision = state.messages.length === 0 || state.result !== null;
+    const profileContext = isNewDecision
+      ? `\n\nShopper profile: ${state.preferences.shoppingStyle.replace("_", " ")} positioning; ${state.preferences.budgetFlexibility} budget. Treat these as preferences, not hard requirements.`
+      : "";
+    if (state.result) state.setResult(null);
+    state.setStage("understanding");
+    state.addMessage({ role: "user", content });
+    state.setError(null);
+    socket.current.send(JSON.stringify({ type: "user_message", session_id: state.sessionId, content: `${content}${profileContext}` }));
+  }, []);
   useEffect(() => () => { closedByApp.current = true; if (retry.current) window.clearTimeout(retry.current); socket.current?.close(); }, []);
   const lastMessage = store.messages[store.messages.length - 1];
   return { connect, sendMessage, stage: store.stage, clarificationQuestion: lastMessage?.role === "assistant" ? lastMessage.content : null, finalResult: store.result, error: store.error, isConnected: store.isConnected };

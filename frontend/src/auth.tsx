@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { createClient, Session } from "@supabase/supabase-js";
-import type { SavedProduct } from "./store/sessionStore";
+import type { SavedProduct, ShopperPreferences } from "./store/sessionStore";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -11,7 +11,7 @@ type AuthContextValue = {
   loading: boolean;
   session: Session | null;
   sendMagicLink: (email: string) => Promise<void>;
-  updateDisplayName: (name: string) => Promise<void>;
+  updateProfile: (name: string, preferences: ShopperPreferences) => Promise<void>;
   signOut: () => Promise<void>;
   syncSaved: (localProducts: SavedProduct[]) => Promise<SavedProduct[]>;
   saveProduct: (product: SavedProduct) => Promise<void>;
@@ -36,9 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/account` } });
     if (error) throw error;
   };
-  const updateDisplayName = async (name: string) => {
+  const updateProfile = async (name: string, preferences: ShopperPreferences) => {
     if (!supabase) throw new Error("Supabase is not configured.");
-    const { data, error } = await supabase.auth.updateUser({ data: { display_name: name } });
+    const { data, error } = await supabase.auth.updateUser({ data: { display_name: name, shopping_preferences: preferences } });
     if (error) throw error;
     setSession((current) => current ? { ...current, user: data.user } : current);
   };
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  return <AuthContext.Provider value={{ configured: Boolean(supabase), loading, session, sendMagicLink, updateDisplayName, signOut, syncSaved, saveProduct, removeSaved }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ configured: Boolean(supabase), loading, session, sendMagicLink, updateProfile, signOut, syncSaved, saveProduct, removeSaved }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
