@@ -3,6 +3,7 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-route
 import { CartDrawer } from "./components/CartDrawer";
 import { ChatIntake } from "./components/ChatIntake";
 import { ProductComparisonGrid } from "./components/ProductComparisonGrid";
+import { ProductDecisionPage } from "./components/ProductDecisionPage";
 import { RecommendationPanel } from "./components/RecommendationPanel";
 import { SearchProgress } from "./components/SearchProgress";
 import { useChatSocket } from "./hooks/useChatSocket";
@@ -224,6 +225,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/advisor" element={<AdvisorPage />} />
+        <Route path="/product/:productId" element={<ProductDecisionPage />} />
         <Route path="/saved" element={<SavedPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

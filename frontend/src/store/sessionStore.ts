@@ -44,5 +44,5 @@ export const useSessionStore = create<SessionState>()(persist((set) => ({
   removeFromCart: (id) => set((state) => ({ cart: state.cart.filter((item) => item.id !== id) })),
 }), {
   name: "pricewise-preferences",
-  partialize: (state) => ({ demoUser: state.demoUser, cart: state.cart }),
+  partialize: (state) => ({ demoUser: state.demoUser, cart: state.cart, result: state.result }),
 }));

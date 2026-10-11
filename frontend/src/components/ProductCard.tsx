@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { ProductResult } from "../types";
 import { PriceSparkline } from "./PriceSparkline";
 
@@ -12,6 +13,6 @@ export function ProductCard({ product, rank, onAddToCart }: { product: ProductRe
     <div className="product-price-row"><strong>{money(product.current_price)}</strong>{product.rating != null && <span aria-label={`${product.rating} out of 5 stars`}>★ {product.rating}{product.review_count ? ` · ${product.review_count.toLocaleString("en-IN")}` : ""}</span>}</div>
     <PriceSparkline points={product.price_history} />
     <p className="price-context">{product.price_data_status === "insufficient_data" ? "Price history is still being built." : `90-day average ${money(product.avg_90_day ?? product.current_price)}`}</p>
-    <div className="product-actions"><button onClick={onAddToCart}>Save & track</button><a href={product.source_url} target="_blank" rel="noreferrer">View retailer <span aria-hidden="true">↗</span></a></div>
+    <div className="product-actions"><Link to={`/product/${encodeURIComponent(product.id)}`}>View decision <span aria-hidden="true">→</span></Link><button onClick={onAddToCart}>Save & track</button></div>
   </article>;
 }
