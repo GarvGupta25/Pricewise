@@ -1,3 +1,28 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
 import type { ChatMessage } from "../types";
-export function ChatIntake({ messages, onSend, disabled }: { messages: ChatMessage[]; onSend: (value: string) => void; disabled: boolean }) { const [value, setValue] = useState(""); const submit = (event: FormEvent) => { event.preventDefault(); if (value.trim()) { onSend(value.trim()); setValue(""); } }; return <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.18em] text-coral">Tell us what you need</p><h2 className="mt-2 text-2xl font-bold text-ink">What are you looking to buy?</h2>{messages.length > 0 && <div className="mt-5 space-y-3">{messages.map((message, index) => <div key={index} className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${message.role === "user" ? "ml-auto bg-ink text-white" : "bg-slate-100 text-slate-700"}`}>{message.content}</div>)}</div>}<form onSubmit={submit} className="mt-5 flex gap-3"><input value={value} onChange={(event) => setValue(event.target.value)} disabled={disabled} className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none ring-coral focus:ring-2 disabled:bg-slate-100" placeholder="e.g. A 27-inch monitor for photo editing under ₹25,000" /><button disabled={disabled} className="rounded-xl bg-coral px-5 font-semibold text-white transition hover:bg-[#d9513a] disabled:cursor-not-allowed disabled:opacity-50">Ask</button></form></section>; }
+
+const starters = ["A phone under ₹25,000", "A laptop for video editing", "Headphones for travel"];
+
+export function ChatIntake({ messages, onSend, disabled, starter = "" }: { messages: ChatMessage[]; onSend: (value: string) => void; disabled: boolean; starter?: string }) {
+  const [value, setValue] = useState(starter);
+  useEffect(() => { if (starter) setValue(starter); }, [starter]);
+  const submit = (event?: FormEvent) => { event?.preventDefault(); if (!disabled && value.trim()) { onSend(value.trim()); setValue(""); } };
+  const handleKeys = (event: KeyboardEvent<HTMLTextAreaElement>) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(); } };
+  return (
+    <section className="conversation-card" aria-labelledby="conversation-title">
+      <div className="conversation-heading">
+        <div><p className="kicker">Ask Pricewise</p><h2 id="conversation-title">What are you looking to buy?</h2></div>
+        <span className="conversation-mode">Live advisor</span>
+      </div>
+      {messages.length > 0 && <ol className="conversation-log" aria-live="polite">
+        {messages.map((message, index) => <li key={`${message.role}-${index}`} className={`message message-${message.role}`}><span>{message.role === "user" ? "You" : "Pricewise"}</span><p>{message.content}</p></li>)}
+      </ol>}
+      <form onSubmit={submit} className="prompt-form">
+        <label className="sr-only" htmlFor="shopping-prompt">Describe the product you want to buy</label>
+        <textarea id="shopping-prompt" rows={2} value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={handleKeys} disabled={disabled} placeholder={disabled ? "Connecting to the advisor…" : "Tell us the product, budget and what matters most"} />
+        <div className="prompt-actions"><span>Enter to send · Shift + Enter for a new line</span><button type="submit" disabled={disabled || !value.trim()} aria-label="Send shopping request">→</button></div>
+      </form>
+      {!messages.length && <div className="starter-row" aria-label="Example searches">{starters.map((item) => <button key={item} type="button" onClick={() => setValue(item)}>{item}</button>)}</div>}
+    </section>
+  );
+}

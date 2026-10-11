@@ -1,10 +1,27 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 type CartItem = { id: string; title: string; source_site: string; current_price: number };
 const apiUrl = import.meta.env.VITE_API_HTTP_URL ?? "http://127.0.0.1:8000";
 
-export function CartDrawer({ items, onRemove }: { items: CartItem[]; onRemove: (id: string) => void }) {
-  const [loadingId, setLoadingId] = useState<string | null>(null); const [message, setMessage] = useState<string | null>(null);
-  const checkout = async (item: CartItem) => { setLoadingId(item.id); setMessage(null); try { const response = await fetch(`${apiUrl}/payment-link`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: item.id }) }); const body = await response.json(); if (!response.ok) throw new Error(body.detail ?? "Unable to create payment link."); window.open(body.payment_link_url, "_blank", "noopener,noreferrer"); setMessage("Razorpay test link opened in a new tab."); } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to create payment link."); } finally { setLoadingId(null); } };
-  return <aside className="rounded-2xl border border-white/10 bg-white/[.045] p-5"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-cyan-300">Your shortlist</p><h2 className="mt-1 text-xl font-bold text-white">Cart · {items.length}</h2></div><span className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-300/15 text-xl">🛒</span></div>{items.length === 0 ? <p className="mt-5 text-sm leading-6 text-slate-400">Add comparison results here. This is a private shortlist, not a retailer checkout.</p> : <ul className="mt-4 space-y-3">{items.map((item) => <li key={item.id} className="rounded-xl bg-black/20 p-3"><p className="text-sm font-semibold text-white">{item.title}</p><p className="mt-1 text-xs text-slate-400">{item.source_site} · ₹{item.current_price.toLocaleString("en-IN")}</p><div className="mt-3 flex gap-3"><button onClick={() => checkout(item)} disabled={loadingId === item.id} className="rounded-lg bg-cyan-300 px-2 py-1 text-xs font-bold text-slate-950 disabled:opacity-50">{loadingId === item.id ? "Creating…" : "Razorpay test checkout"}</button><button onClick={() => onRemove(item.id)} className="text-xs font-bold text-rose-300">Remove</button></div></li>)}</ul>}{message && <p className="mt-4 text-xs leading-5 text-amber-200">{message}</p>}<p className="mt-4 text-xs leading-5 text-slate-500">Test-mode only. Payment happens on Razorpay’s hosted page, never inside Pricewise.</p></aside>;
+export function CartDrawer({ items, onRemove, compact = false }: { items: CartItem[]; onRemove: (id: string) => void; compact?: boolean }) {
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const checkout = async (item: CartItem) => {
+    setLoadingId(item.id); setMessage(null);
+    try {
+      const response = await fetch(`${apiUrl}/payment-link`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: item.id }) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.detail ?? "Unable to create payment link.");
+      window.open(body.payment_link_url, "_blank", "noopener,noreferrer");
+      setMessage("Razorpay test link opened in a new tab.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to create payment link."); }
+    finally { setLoadingId(null); }
+  };
+  return <section className={`saved-panel ${compact ? "saved-panel-compact" : ""}`} aria-labelledby={compact ? "saved-title-compact" : "saved-title"}>
+    <header><div><p className="kicker">Saved products</p><h2 id={compact ? "saved-title-compact" : "saved-title"}>{items.length ? `${items.length} under consideration` : "Nothing saved yet"}</h2></div><span className="saved-count" aria-hidden="true">{items.length}</span></header>
+    {!items.length ? <div className="saved-empty"><p>Save a result to keep it close and compare the buying moment.</p><Link to="/advisor">Start a product search <span aria-hidden="true">→</span></Link></div> : <ul>{items.map((item) => <li key={item.id}><div><strong>{item.title}</strong><span>{item.source_site} · ₹{item.current_price.toLocaleString("en-IN")}</span></div><div className="saved-actions"><button onClick={() => checkout(item)} disabled={loadingId === item.id}>{loadingId === item.id ? "Creating…" : "Test checkout"}</button><button className="remove-action" onClick={() => onRemove(item.id)}>Remove</button></div></li>)}</ul>}
+    {message && <p className="checkout-message" role="status">{message}</p>}
+    {items.length > 0 && <p className="sandbox-note">Checkout remains Razorpay test-mode. Retailer order placement is not yet connected.</p>}
+  </section>;
 }

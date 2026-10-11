@@ -1,2 +1,13 @@
-const stages = [{ id: "searching", label: "Search approved retailers" }, { id: "comparing", label: "Compare best matches" }, { id: "checking_prices", label: "Check price history" }, { id: "checking_calendar", label: "Check sale calendar" }, { id: "done", label: "Recommendation ready" }];
-export function SearchProgress({ stage }: { stage: string | null }) { if (!stage) return null; const active = stages.findIndex((item) => item.id === stage); return <section className="rounded-3xl bg-ink p-6 text-white"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#ffb4a2]">Live analysis</p><ol className="mt-5 grid gap-3 sm:grid-cols-5">{stages.map((item, index) => <li key={item.id} className={`flex items-center gap-2 text-sm ${index <= active ? "text-white" : "text-slate-500"}`}><span className={`grid h-6 w-6 place-items-center rounded-full text-xs ${index < active ? "bg-emerald-400 text-emerald-950" : index === active ? "bg-coral" : "bg-slate-700"}`}>{index < active ? "✓" : index + 1}</span>{item.label}</li>)}</ol></section>; }
+const stages = [
+  { id: "searching", label: "Search retailers" },
+  { id: "comparing", label: "Compare matches" },
+  { id: "checking_prices", label: "Read price history" },
+  { id: "checking_calendar", label: "Check sale timing" },
+  { id: "done", label: "Decision ready" },
+];
+
+export function SearchProgress({ stage }: { stage: string | null }) {
+  if (!stage) return null;
+  const active = stages.findIndex((item) => item.id === stage);
+  return <section className="progress-card" aria-label="Search progress" aria-live="polite"><div className="progress-heading"><p className="kicker">Working through the evidence</p><strong>{stages[active]?.label ?? "Understanding your request"}</strong></div><ol>{stages.map((item, index) => <li key={item.id} className={index < active ? "complete" : index === active ? "active" : ""}><span>{index < active ? "✓" : index + 1}</span><p>{item.label}</p></li>)}</ol></section>;
+}
