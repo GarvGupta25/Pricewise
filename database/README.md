@@ -6,4 +6,4 @@ The `products_source_url_unique` constraint is deliberate: a fresh scrape update
 
 For a local installation, use a PostgreSQL build that includes pgvector. For Supabase, enable the `vector` extension before running the schema. Add the resulting connection string to `backend/.env` as `DATABASE_URL`.
 
-Existing installations should run the numbered SQL files in `migrations/` in ascending order. New installations need the current `schema.sql`, then `002_supabase_saved_products.sql` when Supabase Auth is enabled. The `002` migration references Supabase's `auth.users` table and is intentionally not part of the portable PostgreSQL schema.
+Existing installations should run the numbered SQL files in `migrations/` in ascending order. New installations need the current `schema.sql`, then migrations `002` and `003` when Supabase Auth is enabled. These migrations reference Supabase's `auth.users` table and are intentionally not part of the portable PostgreSQL schema.

@@ -52,6 +52,9 @@ type SessionState = {
   setUser: (name: string | null) => void;
   setPreferences: (preferences: ShopperPreferences) => void;
   setCart: (products: SavedProduct[]) => void;
+  setNotifications: (notifications: PriceNotification[]) => void;
+  setOrders: (orders: OrderRecord[]) => void;
+  setSupportCases: (supportCases: SupportCase[]) => void;
   addToCart: (product: SavedProduct) => void;
   removeFromCart: (id: string) => void;
   applyPriceRefresh: (products: SavedProduct[]) => void;
@@ -82,6 +85,9 @@ export const useSessionStore = create<SessionState>()(persist((set) => ({
   setUser: (demoUser) => set({ demoUser }),
   setPreferences: (preferences) => set({ preferences }),
   setCart: (cart) => set({ cart }),
+  setNotifications: (notifications) => set({ notifications }),
+  setOrders: (orders) => set({ orders }),
+  setSupportCases: (supportCases) => set({ supportCases }),
   addToCart: (product) => set((state) => state.cart.some((item) => item.id === product.id) ? state : { cart: [...state.cart, product] }),
   removeFromCart: (id) => set((state) => ({ cart: state.cart.filter((item) => item.id !== id) })),
   applyPriceRefresh: (products) => set((state) => {

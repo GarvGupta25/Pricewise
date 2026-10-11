@@ -47,6 +47,28 @@ function SavedSync() {
   return null;
 }
 
+function WorkspaceSync() {
+  const orders = useSessionStore((state) => state.orders);
+  const supportCases = useSessionStore((state) => state.supportCases);
+  const notifications = useSessionStore((state) => state.notifications);
+  const setOrders = useSessionStore((state) => state.setOrders);
+  const setSupportCases = useSessionStore((state) => state.setSupportCases);
+  const setNotifications = useSessionStore((state) => state.setNotifications);
+  const setError = useSessionStore((state) => state.setError);
+  const { session, syncWorkspace } = useAuth();
+  const workspaceDigest = JSON.stringify([orders, supportCases, notifications]);
+  useEffect(() => {
+    if (!session) return;
+    const timer = window.setTimeout(() => {
+      syncWorkspace(orders, supportCases, notifications).then((workspace) => {
+        setOrders(workspace.orders); setSupportCases(workspace.supportCases); setNotifications(workspace.notifications);
+      }).catch(() => setError("Your account workspace could not sync. The local copy is still available."));
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [session?.user.id, workspaceDigest]);
+  return null;
+}
+
 function SiteHeader() {
   const demoUser = useSessionStore((state) => state.demoUser);
   const cartCount = useSessionStore((state) => state.cart.length);
@@ -342,6 +364,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <SavedSync />
+      <WorkspaceSync />
       <PriceRefresh />
       <SiteHeader />
       <Routes>
