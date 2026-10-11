@@ -69,7 +69,7 @@ flowchart LR
 - Multi-page discovery experience with landing, Explore, advisor, saved, and account routes.
 - Optional Supabase passwordless authentication with a local preview profile fallback.
 - Verified product imagery carried from retailer extraction into result cards.
-- Local browser shortlist cart that persists across refreshes.
+- Shortlist that persists locally for guests and syncs to the signed-in Supabase account when configured.
 - Optional Razorpay **test-mode** Payment Link created from the server’s cached product price.
 - Explicit “insufficient data” handling rather than fabricated price trends.
 

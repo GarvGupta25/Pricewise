@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { createClient, Session } from "@supabase/supabase-js";
+import type { SavedProduct } from "./store/sessionStore";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -12,6 +13,9 @@ type AuthContextValue = {
   sendMagicLink: (email: string) => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
   signOut: () => Promise<void>;
+  syncSaved: (localProducts: SavedProduct[]) => Promise<SavedProduct[]>;
+  saveProduct: (product: SavedProduct) => Promise<void>;
+  removeSaved: (productId: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,8 +43,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession((current) => current ? { ...current, user: data.user } : current);
   };
   const signOut = async () => { if (supabase) await supabase.auth.signOut(); };
+  const syncSaved = async (localProducts: SavedProduct[]) => {
+    if (!supabase || !session) return localProducts;
+    if (localProducts.length) {
+      const rows = localProducts.map((product) => ({ user_id: session.user.id, product_id: product.id, title: product.title, source_site: product.source_site, current_price: product.current_price }));
+      const { error } = await supabase.from("saved_products").upsert(rows, { onConflict: "user_id,product_id" });
+      if (error) throw error;
+    }
+    const { data, error } = await supabase.from("saved_products").select("product_id,title,source_site,current_price").order("created_at", { ascending: false });
+    if (error) throw error;
+    return data.map((row) => ({ id: row.product_id, title: row.title, source_site: row.source_site, current_price: row.current_price }));
+  };
+  const saveProduct = async (product: SavedProduct) => {
+    if (!supabase || !session) return;
+    const { error } = await supabase.from("saved_products").upsert({ user_id: session.user.id, product_id: product.id, title: product.title, source_site: product.source_site, current_price: product.current_price }, { onConflict: "user_id,product_id" });
+    if (error) throw error;
+  };
+  const removeSaved = async (productId: string) => {
+    if (!supabase || !session) return;
+    const { error } = await supabase.from("saved_products").delete().eq("product_id", productId);
+    if (error) throw error;
+  };
 
-  return <AuthContext.Provider value={{ configured: Boolean(supabase), loading, session, sendMagicLink, updateDisplayName, signOut }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ configured: Boolean(supabase), loading, session, sendMagicLink, updateDisplayName, signOut, syncSaved, saveProduct, removeSaved }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

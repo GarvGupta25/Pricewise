@@ -16,6 +16,18 @@ const discoveryPaths = [
   { label: "Audio", prompt: "Help me choose headphones for the way I listen" },
 ];
 
+function SavedSync() {
+  const cart = useSessionStore((state) => state.cart);
+  const setCart = useSessionStore((state) => state.setCart);
+  const setError = useSessionStore((state) => state.setError);
+  const { session, syncSaved } = useAuth();
+  useEffect(() => {
+    if (!session) return;
+    syncSaved(cart).then(setCart).catch(() => setError("Your saved products could not sync. The local copy is still available."));
+  }, [session?.user.id]);
+  return null;
+}
+
 function SiteHeader() {
   const demoUser = useSessionStore((state) => state.demoUser);
   const cartCount = useSessionStore((state) => state.cart.length);
@@ -120,6 +132,8 @@ function AdvisorPage() {
   const cart = useSessionStore((state) => state.cart);
   const addToCart = useSessionStore((state) => state.addToCart);
   const removeFromCart = useSessionStore((state) => state.removeFromCart);
+  const setError = useSessionStore((state) => state.setError);
+  const { saveProduct, removeSaved } = useAuth();
   const { connect, sendMessage, stage, finalResult, error, isConnected } = useChatSocket();
   const starter = new URLSearchParams(location.search).get("prompt") ?? "";
 
@@ -138,7 +152,7 @@ function AdvisorPage() {
           <SearchProgress stage={stage} />
           {finalResult && <>
             <RecommendationPanel result={finalResult} />
-            <ProductComparisonGrid products={finalResult.products} onAddToCart={addToCart} />
+            <ProductComparisonGrid products={finalResult.products} onAddToCart={(product) => { addToCart(product); saveProduct(product).catch(() => setError("Saved locally, but account sync failed.")); }} />
           </>}
         </section>
         <aside className="advisor-rail">
@@ -146,7 +160,7 @@ function AdvisorPage() {
             <span className="signal-dot" aria-hidden="true" />
             <div><strong>{isConnected ? "Advisor connected" : "Connecting advisor"}</strong><p>{isConnected ? "Ready for a new decision" : "The workspace will unlock when connected"}</p></div>
           </div>
-          <CartDrawer items={cart} onRemove={removeFromCart} compact />
+          <CartDrawer items={cart} onRemove={(id) => { removeFromCart(id); removeSaved(id).catch(() => setError("Removed locally, but account sync failed.")); }} compact />
         </aside>
       </div>
     </main>
@@ -156,10 +170,12 @@ function AdvisorPage() {
 function SavedPage() {
   const cart = useSessionStore((state) => state.cart);
   const removeFromCart = useSessionStore((state) => state.removeFromCart);
+  const setError = useSessionStore((state) => state.setError);
+  const { removeSaved } = useAuth();
   return (
     <main className="page-shell">
       <header className="page-intro"><p className="kicker">Saved & tracking</p><h1>Your decisions, held in one place.</h1><p>Products saved in this browser remain here while account-backed tracking is being built.</p></header>
-      <CartDrawer items={cart} onRemove={removeFromCart} />
+      <CartDrawer items={cart} onRemove={(id) => { removeFromCart(id); removeSaved(id).catch(() => setError("Removed locally, but account sync failed.")); }} />
     </main>
   );
 }
@@ -202,6 +218,7 @@ function AccountPage() {
 export default function App() {
   return (
     <div className="app-shell">
+      <SavedSync />
       <SiteHeader />
       <Routes>
         <Route path="/" element={<LandingPage />} />
