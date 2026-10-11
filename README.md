@@ -66,6 +66,9 @@ flowchart LR
 - Firecrawl restricted in code to five approved retailer domains.
 - Real-time WebSocket stages: search, compare, price analysis, calendar, and final recommendation.
 - Dark demo workspace with remembered demo identity and a reset/switch-user control.
+- Multi-page discovery experience with landing, Explore, advisor, saved, and account routes.
+- Optional Supabase passwordless authentication with a local preview profile fallback.
+- Verified product imagery carried from retailer extraction into result cards.
 - Local browser shortlist cart that persists across refreshes.
 - Optional Razorpay **test-mode** Payment Link created from the server’s cached product price.
 - Explicit “insufficient data” handling rather than fabricated price trends.
@@ -138,6 +141,17 @@ Copy `backend/.env.example` to `backend/.env`, then set the required values. Nev
 | `RAZORPAY_KEY_ID` | Optional | Razorpay **test-mode** key ID for Payment Links. |
 | `RAZORPAY_KEY_SECRET` | Optional | Razorpay **test-mode** secret; server-only. |
 | `ALLOWED_ORIGINS` | Yes | Browser origins permitted by FastAPI CORS. |
+
+Copy `frontend/.env.example` to `frontend/.env`, then configure these browser-safe values:
+
+| Variable | Required | Purpose |
+|---|---:|---|
+| `VITE_SUPABASE_URL` | Optional | Enables Supabase passwordless authentication. |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Optional | Browser-safe Supabase publishable key. Never use a secret or service-role key here. |
+| `VITE_API_HTTP_URL` | Optional | FastAPI base URL; defaults to `http://127.0.0.1:8000`. |
+| `VITE_API_WS_URL` | Optional | FastAPI WebSocket base URL; defaults to `ws://127.0.0.1:8000`. |
+
+When Supabase variables are absent, the account screen remains in clearly labelled local preview mode.
 
 ## Run locally
 

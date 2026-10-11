@@ -41,6 +41,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .kicker { margin: 0; color: var(--violet-bright); font-size: 11px; font-weight: 780; letter-spacing: .17em; text-transform: uppercase; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; padding: 0 20px; border: 0; border-radius: 14px; cursor: pointer; text-decoration: none; font-size: 14px; font-weight: 730; transition: transform .2s ease, background .2s ease, color .2s ease; }
 .button:hover:not(:disabled) { transform: translateY(-2px); }
+.button:disabled { cursor: not-allowed; opacity: .55; }
 .button-primary { background: #fff; color: #09090b; box-shadow: 0 16px 36px rgba(255,255,255,.1); }
 .button-primary:hover:not(:disabled) { background: #e8e4ff; }
 .button-secondary { border: 1px solid var(--line); background: rgba(255,255,255,.045); color: #fff; }
@@ -236,6 +237,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .account-form input { width: 100%; min-height: 52px; padding: 0 15px; border: 1px solid var(--line); border-radius: 13px; background: #08080a; color: #fff; }
 .account-form .button { margin-top: 4px; }
 .form-success { margin: 7px 0 0; color: var(--green); font-size: 12px; }
+.signout-button { margin-top: 20px; padding: 8px 0; border: 0; background: transparent; color: #a7a7b0; cursor: pointer; font-size: 12px; font-weight: 700; }
+.signout-button:hover { color: #fff; }
 
 .site-footer { display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center; width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 26px 0 40px; border-top: 1px solid var(--line); color: #666670; font-size: 11px; }
 .site-footer a { color: #b6b6bd; text-decoration: none; font-weight: 750; }

@@ -7,6 +7,7 @@ import { RecommendationPanel } from "./components/RecommendationPanel";
 import { SearchProgress } from "./components/SearchProgress";
 import { useChatSocket } from "./hooks/useChatSocket";
 import { useSessionStore } from "./store/sessionStore";
+import { useAuth } from "./auth";
 
 const discoveryPaths = [
   { label: "Phones", prompt: "Help me find a smartphone that fits my budget and daily use" },
@@ -18,6 +19,8 @@ const discoveryPaths = [
 function SiteHeader() {
   const demoUser = useSessionStore((state) => state.demoUser);
   const cartCount = useSessionStore((state) => state.cart.length);
+  const { loading, session } = useAuth();
+  const displayName = session?.user.user_metadata.display_name || session?.user.email || demoUser || "Sign in";
   return (
     <header className="site-header">
       <Link className="wordmark" to="/" aria-label="Pricewise home">
@@ -30,8 +33,8 @@ function SiteHeader() {
         <NavLink to="/saved">Saved{cartCount ? ` ${cartCount}` : ""}</NavLink>
       </nav>
       <Link className="account-link" to="/account">
-        <span className="account-avatar" aria-hidden="true">{demoUser?.charAt(0).toUpperCase() || "G"}</span>
-        <span>{demoUser || "Sign in"}</span>
+        <span className="account-avatar" aria-hidden="true">{loading ? "·" : String(displayName).charAt(0).toUpperCase()}</span>
+        <span>{loading ? "Loading" : displayName}</span>
       </Link>
     </header>
   );
@@ -164,21 +167,33 @@ function SavedPage() {
 function AccountPage() {
   const currentUser = useSessionStore((state) => state.demoUser);
   const setUser = useSessionStore((state) => state.setUser);
-  const [name, setName] = useState(currentUser ?? "");
-  const [saved, setSaved] = useState(false);
-  const submit = (event: FormEvent) => { event.preventDefault(); if (!name.trim()) return; setUser(name.trim()); setSaved(true); };
+  const { configured, loading, session, sendMagicLink, signOut, updateDisplayName } = useAuth();
+  const [name, setName] = useState(String(session?.user.user_metadata.display_name || currentUser || ""));
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (session?.user.user_metadata.display_name) setName(session.user.user_metadata.display_name); }, [session]);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault(); setStatus(null); setBusy(true);
+    try {
+      if (configured && !session) { await sendMagicLink(email.trim()); setStatus("Check your email for a secure sign-in link."); }
+      else if (configured) { await updateDisplayName(name.trim()); setStatus("Profile updated."); }
+      else { setUser(name.trim()); setStatus("Preview profile saved on this device."); }
+    } catch (error) { setStatus(error instanceof Error ? error.message : "Unable to update your account."); }
+    finally { setBusy(false); }
+  };
   return (
     <main className="account-page">
       <section className="account-panel" aria-labelledby="account-title">
-        <p className="kicker">Preview profile</p>
-        <h1 id="account-title">Make the experience yours.</h1>
-        <p>For now, your name and shortlist stay in this browser. Secure account sync and preferences are the next production milestone.</p>
+        <p className="kicker">{configured ? "Secure account" : "Preview profile"}</p>
+        <h1 id="account-title">{session ? "Good to have you here." : "Make the experience yours."}</h1>
+        <p>{configured ? session ? `Signed in as ${session.user.email}. Your authenticated profile can follow you across devices.` : "Use a magic link to sign in without a password. We’ll send it only to the address you enter." : "Supabase is not configured in this environment, so your preview name and shortlist stay in this browser."}</p>
         <form onSubmit={submit} className="account-form">
-          <label htmlFor="profile-name">Your name</label>
-          <input id="profile-name" value={name} onChange={(event) => { setName(event.target.value); setSaved(false); }} placeholder="e.g. Garv" autoComplete="name" />
-          <button type="submit" className="button button-primary">Save profile</button>
-          {saved && <p className="form-success" role="status">Saved on this device.</p>}
+          {configured && !session ? <><label htmlFor="account-email">Email address</label><input id="account-email" type="email" required value={email} onChange={(event) => { setEmail(event.target.value); setStatus(null); }} placeholder="you@example.com" autoComplete="email" /></> : <><label htmlFor="profile-name">Your name</label><input id="profile-name" required value={name} onChange={(event) => { setName(event.target.value); setStatus(null); }} placeholder="e.g. Garv" autoComplete="name" /></>}
+          <button type="submit" disabled={busy || loading} className="button button-primary">{busy ? "Working…" : configured && !session ? "Email me a sign-in link" : "Save profile"}</button>
+          {status && <p className="form-success" role="status">{status}</p>}
         </form>
+        {session && <button className="signout-button" type="button" onClick={() => signOut()}>Sign out</button>}
       </section>
     </main>
   );
