@@ -194,6 +194,58 @@ class Database:
             rows = await connection.fetch(query, [str(product_id) for product_id in product_ids])
         return [dict(row) for row in rows]
 
+    async def get_tracked_products(self, *, limit: int = 100) -> list[dict[str, Any]]:
+        """Return products currently saved by at least one authenticated shopper."""
+        query = """
+            SELECT DISTINCT p.id, p.source_url, p.current_price
+            FROM products p
+            JOIN saved_products sp ON sp.product_id = p.id
+            ORDER BY p.id
+            LIMIT $1
+        """
+        async with self.pool.acquire() as connection:
+            rows = await connection.fetch(query, limit)
+        return [dict(row) for row in rows]
+
+    async def record_tracked_price(self, product_id: UUID | str, price: int) -> bool:
+        """Store a changed price and create one deduplicated alert per tracking user."""
+        if price < 0:
+            raise ValueError("price must be a non-negative integer number of INR")
+        async with self.pool.acquire() as connection, connection.transaction():
+            previous = await connection.fetchval(
+                "SELECT current_price FROM products WHERE id = $1::uuid FOR UPDATE", str(product_id)
+            )
+            if previous is None:
+                return False
+            if previous == price:
+                await connection.execute(
+                    "UPDATE products SET last_scraped_at = now() WHERE id = $1::uuid", str(product_id)
+                )
+                return False
+            await connection.execute(
+                "UPDATE products SET current_price = $2, last_scraped_at = now() WHERE id = $1::uuid",
+                str(product_id), price,
+            )
+            await connection.execute(
+                "INSERT INTO price_history (product_id, price) VALUES ($1::uuid, $2)",
+                str(product_id), price,
+            )
+            if price < previous:
+                await connection.execute(
+                    """
+                    INSERT INTO price_alerts (
+                        user_id, alert_id, product_id, title, previous_price, current_price
+                    )
+                    SELECT sp.user_id, $2, p.id, p.title, $3, $4
+                    FROM saved_products sp
+                    JOIN products p ON p.id = sp.product_id
+                    WHERE sp.product_id = $1::uuid
+                    ON CONFLICT (user_id, alert_id) DO NOTHING
+                    """,
+                    str(product_id), f"{product_id}:{price}", previous, price,
+                )
+            return True
+
     async def load_conversation(self, session_id: str) -> dict[str, Any] | None:
         async with self.pool.acquire() as connection:
             state = await connection.fetchval(

@@ -9,7 +9,7 @@ from backend.graph.nodes.hybrid_search import _search_query
 from backend.graph.nodes.holiday_trend import holiday_trend_node
 from backend.graph.nodes.top_k_aggregator import top_k_aggregator_node
 from backend.graph.state import ProductResult, initial_graph_state
-from backend.services.firecrawl_client import _native_product_price, _price_from_markdown, _safe_image_url
+from backend.services.firecrawl_client import FirecrawlClient, _native_product_price, _price_from_markdown, _safe_image_url
 
 
 @pytest.mark.asyncio
@@ -66,6 +66,12 @@ def test_product_images_require_an_https_url() -> None:
     assert _safe_image_url("https://cdn.example.com/product.jpg") == "https://cdn.example.com/product.jpg"
     assert _safe_image_url("javascript:alert(1)") is None
     assert _safe_image_url("data:image/png;base64,abc") is None
+
+
+@pytest.mark.asyncio
+async def test_tracked_refresh_rejects_unapproved_retailers_before_network() -> None:
+    with pytest.raises(ValueError, match="approved retailer"):
+        await FirecrawlClient("unused").refresh_product("https://example.com/product/1")
 
 
 def test_search_query_reconstructs_complete_multi_turn_intent() -> None:

@@ -40,6 +40,16 @@ npm run build
 
 The test suite confirms the graph’s routing, retailer defense, price-history labelling, WebSocket configuration error, and cached end-to-end decision. The smoke test uses deliberately isolated test data; the UI never shows fabricated products. A fully live run requires the credentials and services from step 1.
 
+## 5. Schedule tracked-price refreshes
+
+After applying Supabase migrations `002` and `003`, run this command from a trusted scheduler every 6–24 hours:
+
+```powershell
+.\.venv\Scripts\python.exe -m backend.jobs.refresh_prices
+```
+
+The job refreshes only products saved by a user, rejects URLs outside the retailer allowlist, records changed prices, and creates deduplicated price alerts. Its JSON output reports checked, changed, and failed counts for monitoring.
+
 ## Current limits
 
 - The local machine still needs PostgreSQL/pgvector and Ollama installed.

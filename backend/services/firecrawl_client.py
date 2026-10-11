@@ -57,6 +57,15 @@ class FirecrawlClient:
     def __init__(self, api_key: str | None) -> None:
         self._api_key = api_key
 
+    async def refresh_product(self, url: str) -> ScrapedProduct | None:
+        """Refresh one known tracked product while preserving the retailer allowlist."""
+        if not canonical_retailer(url):
+            raise ValueError("Tracked product URL is not from an approved retailer.")
+        if not self._api_key:
+            raise ServiceConfigurationError("FIRECRAWL_API_KEY is required to refresh tracked prices.")
+        async with httpx.AsyncClient(timeout=60) as client:
+            return await self._scrape_product(client, url)
+
     async def search_products(self, query: str, *, limit: int = 3) -> list[ScrapedProduct]:
         if not self._api_key:
             raise ServiceConfigurationError("FIRECRAWL_API_KEY is required when the cache is stale.")
