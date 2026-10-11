@@ -34,6 +34,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .site-nav { display: flex; align-items: center; gap: 6px; }
 .site-nav a { padding: 10px 14px; border-radius: 11px; color: #a7a7b0; text-decoration: none; font-size: 13px; font-weight: 620; transition: color .18s ease, background .18s ease; }
 .site-nav a:hover, .site-nav a.active { background: rgba(255,255,255,.075); color: #fff; }
+.site-nav .notification-link { display: flex; align-items: center; gap: 6px; }
+.notification-link b { display: grid; place-items: center; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px; background: var(--violet); color: #0b0911; font-size: 9px; }
 .account-link { display: flex; justify-self: end; align-items: center; gap: 9px; padding: 5px 11px 5px 5px; border-radius: 12px; color: #d8d8de; text-decoration: none; font-size: 13px; font-weight: 650; transition: background .18s ease; }
 .account-link:hover { background: rgba(255,255,255,.075); }
 .account-avatar { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid rgba(255,255,255,.13); border-radius: 9px; background: linear-gradient(145deg, #37303f, #1c1a21); color: #d9d1ff; }
@@ -272,6 +274,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .saved-panel-compact .saved-actions button:first-child { display: none; }
 .saved-panel-compact .saved-empty { padding-top: 22px; font-size: 12px; }
 
+.notifications-panel { padding: clamp(25px, 5vw, 50px); border: 1px solid var(--line); border-radius: 28px; background: #111116; }
+.notifications-heading { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+.notifications-heading h2 { margin: 10px 0 0; font-size: clamp(28px, 4vw, 43px); letter-spacing: -.045em; }
+.notifications-heading > span { display: grid; place-items: center; width: 45px; height: 45px; border-radius: 14px; background: rgba(155,135,245,.12); color: var(--violet-bright); font-size: 12px; font-weight: 800; }
+.notifications-empty { padding: 55px 0 10px; border-top: 1px solid var(--line); margin-top: 30px; }
+.notifications-empty p { max-width: 480px; margin: 0; color: #85858f; line-height: 1.65; }
+.notifications-empty a { display: inline-block; margin-top: 18px; color: var(--violet-bright); text-decoration: none; font-size: 13px; font-weight: 700; }
+.notification-list { display: grid; gap: 0; margin: 35px 0 0; padding: 0; border-top: 1px solid var(--line); list-style: none; }
+.notification-list li { display: grid; grid-template-columns: 90px 1fr auto; gap: 20px; align-items: center; padding: 24px 0; border-bottom: 1px solid var(--line); }
+.drop-badge { width: fit-content; padding: 7px 9px; border-radius: 999px; background: rgba(100,210,161,.11); color: #82dcb7; font-size: 9px; font-weight: 780; }
+.notification-list h3 { margin: 0; font-size: 14px; line-height: 1.45; }
+.notification-list p { display: flex; flex-wrap: wrap; gap: 9px 13px; align-items: baseline; margin: 7px 0 0; }
+.notification-list s { color: #696973; font-size: 11px; }
+.notification-list strong { font-size: 16px; }
+.notification-list em { color: var(--green); font-size: 10px; font-style: normal; font-weight: 700; }
+.notification-list a { color: #c7c7ce; text-decoration: none; font-size: 11px; font-weight: 730; }
+
 .account-page { display: grid; place-items: center; min-height: 75vh; padding: 100px 20px; background: radial-gradient(circle at 50% 20%, rgba(107,82,215,.16), transparent 32%); }
 .account-panel { width: min(100%, 540px); padding: clamp(28px, 5vw, 48px); border: 1px solid var(--line); border-radius: 28px; background: rgba(17,17,22,.88); }
 .account-panel h1 { margin: 16px 0 15px; font-size: clamp(38px, 5vw, 58px); letter-spacing: -.06em; line-height: .98; }
@@ -365,6 +384,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .evidence-grid article:last-child { border-bottom: 0; }
   .decision-verdict { grid-template-columns: 1fr; gap: 30px; border-radius: 24px; }
   .saved-panel li { display: block; }
+  .notification-list li { grid-template-columns: 1fr; gap: 10px; }
   .saved-actions { margin-top: 14px; }
   .site-footer { grid-template-columns: 1fr auto; margin-bottom: 75px; }
   .site-footer p { display: none; }

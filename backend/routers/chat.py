@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 from langgraph.types import Command
@@ -40,6 +41,10 @@ class UserMessage(BaseModel):
 
 class PaymentLinkRequest(BaseModel):
     product_id: str = Field(min_length=1, max_length=100)
+
+
+class ProductPricesRequest(BaseModel):
+    product_ids: list[UUID] = Field(min_length=1, max_length=50)
 
 
 async def _get_graph(app: Any):
@@ -186,3 +191,11 @@ async def payment_link(payload: PaymentLinkRequest, request: Request) -> dict[st
     except (ValueError, RuntimeError) as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
     return {"payment_link_url": link}
+
+
+@router.post("/products/prices")
+async def product_prices(payload: ProductPricesRequest, request: Request) -> dict[str, Any]:
+    """Return authoritative current prices for a bounded tracked-product list."""
+    await _get_graph(request.app)
+    rows = await request.app.state.shopping_database.get_product_prices(payload.product_ids)
+    return {"products": rows}

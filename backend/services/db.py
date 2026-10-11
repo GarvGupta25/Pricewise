@@ -183,6 +183,17 @@ class Database:
             row = await connection.fetchrow(query, str(product_id))
         return dict(row) if row else None
 
+    async def get_product_prices(self, product_ids: Sequence[UUID]) -> list[dict[str, Any]]:
+        """Return current public price snapshots for tracked products."""
+        query = """
+            SELECT id, title, source_site, current_price
+            FROM products
+            WHERE id = ANY($1::uuid[]) AND current_price IS NOT NULL
+        """
+        async with self.pool.acquire() as connection:
+            rows = await connection.fetch(query, [str(product_id) for product_id in product_ids])
+        return [dict(row) for row in rows]
+
     async def load_conversation(self, session_id: str) -> dict[str, Any] | None:
         async with self.pool.acquire() as connection:
             state = await connection.fetchval(

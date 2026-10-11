@@ -16,6 +16,24 @@ const discoveryPaths = [
   { label: "Displays", prompt: "Help me find the right monitor for my setup" },
   { label: "Audio", prompt: "Help me choose headphones for the way I listen" },
 ];
+const apiUrl = import.meta.env.VITE_API_HTTP_URL ?? "http://127.0.0.1:8000";
+
+function PriceRefresh() {
+  const cart = useSessionStore((state) => state.cart);
+  const applyPriceRefresh = useSessionStore((state) => state.applyPriceRefresh);
+  const productIds = cart.map((item) => item.id).join(",");
+  useEffect(() => {
+    if (!productIds) return;
+    fetch(`${apiUrl}/products/prices`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_ids: productIds.split(",") }),
+    }).then((response) => response.ok ? response.json() : Promise.reject())
+      .then((body: { products: typeof cart }) => applyPriceRefresh(body.products))
+      .catch(() => undefined);
+  }, [productIds, applyPriceRefresh]);
+  return null;
+}
 
 function SavedSync() {
   const cart = useSessionStore((state) => state.cart);
@@ -32,6 +50,7 @@ function SavedSync() {
 function SiteHeader() {
   const demoUser = useSessionStore((state) => state.demoUser);
   const cartCount = useSessionStore((state) => state.cart.length);
+  const unreadCount = useSessionStore((state) => state.notifications.filter((item) => !item.read).length);
   const { loading, session } = useAuth();
   const displayName = session?.user.user_metadata.display_name || session?.user.email || demoUser || "Sign in";
   return (
@@ -44,6 +63,7 @@ function SiteHeader() {
         <NavLink to="/explore">Explore</NavLink>
         <NavLink to="/advisor">Ask Pricewise</NavLink>
         <NavLink to="/saved">Saved{cartCount ? ` ${cartCount}` : ""}</NavLink>
+        <NavLink className="notification-link" to="/notifications" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}>Alerts{unreadCount ? <b>{unreadCount}</b> : null}</NavLink>
       </nav>
       <Link className="account-link" to="/account">
         <span className="account-avatar" aria-hidden="true">{loading ? "·" : String(displayName).charAt(0).toUpperCase()}</span>
@@ -181,6 +201,23 @@ function SavedPage() {
   );
 }
 
+function NotificationsPage() {
+  const notifications = useSessionStore((state) => state.notifications);
+  const markNotificationsRead = useSessionStore((state) => state.markNotificationsRead);
+  useEffect(() => { if (notifications.some((item) => !item.read)) markNotificationsRead(); }, [notifications, markNotificationsRead]);
+  return (
+    <main className="page-shell">
+      <header className="page-intro"><p className="kicker">Price alerts</p><h1>Changes worth knowing.</h1><p>Pricewise checks your saved products when you return and keeps meaningful price drops together here.</p></header>
+      <section className="notifications-panel" aria-labelledby="notifications-title">
+        <div className="notifications-heading"><div><p className="kicker">Notification centre</p><h2 id="notifications-title">{notifications.length ? `${notifications.length} price update${notifications.length === 1 ? "" : "s"}` : "You’re all caught up"}</h2></div><span aria-hidden="true">{notifications.length}</span></div>
+        {!notifications.length ? <div className="notifications-empty"><p>Save a product and we’ll compare its latest cached price the next time you visit.</p><Link to="/advisor">Find a product <span aria-hidden="true">→</span></Link></div> : <ol className="notification-list">{notifications.map((item) => <li key={item.id}>
+          <span className="drop-badge">Price drop</span><div><h3>{item.title}</h3><p><s>₹{item.previousPrice.toLocaleString("en-IN")}</s><strong>₹{item.currentPrice.toLocaleString("en-IN")}</strong><em>Save ₹{(item.previousPrice - item.currentPrice).toLocaleString("en-IN")}</em></p></div><Link to={`/product/${encodeURIComponent(item.productId)}`}>Review decision <span aria-hidden="true">→</span></Link>
+        </li>)}</ol>}
+      </section>
+    </main>
+  );
+}
+
 function AccountPage() {
   const currentUser = useSessionStore((state) => state.demoUser);
   const setUser = useSessionStore((state) => state.setUser);
@@ -235,6 +272,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <SavedSync />
+      <PriceRefresh />
       <SiteHeader />
       <Routes>
         <Route path="/" element={<LandingPage />} />
@@ -242,6 +280,7 @@ export default function App() {
         <Route path="/advisor" element={<AdvisorPage />} />
         <Route path="/product/:productId" element={<ProductDecisionPage />} />
         <Route path="/saved" element={<SavedPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
