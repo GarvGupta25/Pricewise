@@ -23,6 +23,13 @@ export type OrderRecord = SavedProduct & {
   deliveryDate?: string;
   installationAt?: string;
 };
+export type SupportCase = {
+  id: string;
+  orderId: string;
+  kind: "return" | "exchange" | "warranty" | "delivery";
+  summary: string;
+  createdAt: string;
+};
 
 type SessionState = {
   sessionId: string;
@@ -36,6 +43,7 @@ type SessionState = {
   cart: SavedProduct[];
   notifications: PriceNotification[];
   orders: OrderRecord[];
+  supportCases: SupportCase[];
   addMessage: (message: ChatMessage) => void;
   setStage: (stage: string | null) => void;
   setResult: (result: FinalResult | null) => void;
@@ -50,6 +58,7 @@ type SessionState = {
   markNotificationsRead: () => void;
   startCheckout: (product: SavedProduct) => void;
   updateOrder: (orderId: string, update: Partial<Pick<OrderRecord, "status" | "deliveryDate" | "installationAt">>) => void;
+  createSupportCase: (supportCase: Omit<SupportCase, "id" | "createdAt">) => void;
 };
 
 export const useSessionStore = create<SessionState>()(persist((set) => ({
@@ -64,6 +73,7 @@ export const useSessionStore = create<SessionState>()(persist((set) => ({
   cart: [],
   notifications: [],
   orders: [],
+  supportCases: [],
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
   setStage: (stage) => set({ stage }),
   setResult: (result) => set({ result }),
@@ -97,7 +107,8 @@ export const useSessionStore = create<SessionState>()(persist((set) => ({
   markNotificationsRead: () => set((state) => ({ notifications: state.notifications.map((item) => ({ ...item, read: true })) })),
   startCheckout: (product) => set((state) => ({ orders: [{ ...product, orderId: crypto.randomUUID(), status: "checkout_started", createdAt: new Date().toISOString() }, ...state.orders] })),
   updateOrder: (orderId, update) => set((state) => ({ orders: state.orders.map((order) => order.orderId === orderId ? { ...order, ...update } : order) })),
+  createSupportCase: (supportCase) => set((state) => ({ supportCases: [{ ...supportCase, id: crypto.randomUUID(), createdAt: new Date().toISOString() }, ...state.supportCases] })),
 }), {
   name: "pricewise-preferences",
-  partialize: (state) => ({ demoUser: state.demoUser, preferences: state.preferences, cart: state.cart, notifications: state.notifications, orders: state.orders, result: state.result }),
+  partialize: (state) => ({ demoUser: state.demoUser, preferences: state.preferences, cart: state.cart, notifications: state.notifications, orders: state.orders, supportCases: state.supportCases, result: state.result }),
 }));

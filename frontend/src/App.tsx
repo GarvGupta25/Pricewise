@@ -245,7 +245,45 @@ function OrdersPage() {
         {order.status !== "checkout_started" && <form className="fulfilment-form" onSubmit={(event) => savePlan(event, order.orderId)}><label>Expected delivery<input type="date" name="deliveryDate" defaultValue={order.deliveryDate} min={new Date().toISOString().slice(0, 10)} /></label><label>Preferred installation<input type="datetime-local" name="installationAt" defaultValue={order.installationAt} /></label><button type="submit">Save plan</button></form>}
         {order.status === "ordered" && <div className="order-actions">{order.installationAt && <a href={calendarUrl(order.title, order.installationAt)} target="_blank" rel="noreferrer">Add installation to Google Calendar <span aria-hidden="true">↗</span></a>}<button onClick={() => updateOrder(order.orderId, { status: "delivered" })}>Mark delivered</button></div>}
         {order.status === "delivered" && <div className="delivered-note"><span aria-hidden="true">✓</span><div><strong>Delivered</strong><p>Your after-sales workspace is ready if anything needs attention.</p></div></div>}
+        {order.status === "delivered" && <Link className="support-link" to={`/support?order=${encodeURIComponent(order.orderId)}`}>Get after-sales help <span aria-hidden="true">→</span></Link>}
       </article>)}</section>}
+    </main>
+  );
+}
+
+const supportGuidance = {
+  return: ["Keep the product, packaging and included accessories together.", "Photograph the product and serial number before handoff.", "Ask the retailer to confirm the refund method and timeline in writing."],
+  exchange: ["Record the exact defect or mismatch with a photo or short video.", "Keep the invoice, packaging and accessories ready.", "Confirm whether the replacement is new and when it will arrive."],
+  warranty: ["Locate the invoice and product serial number.", "Describe when the fault started and the troubleshooting already attempted.", "Ask for a written job sheet when the product is collected."],
+  delivery: ["Save the tracking page and delivery messages.", "Note any damage before opening the package further.", "Contact the retailer first and keep the complaint reference number."],
+};
+
+function SupportPage() {
+  const location = useLocation();
+  const orders = useSessionStore((state) => state.orders);
+  const supportCases = useSessionStore((state) => state.supportCases);
+  const createSupportCase = useSessionStore((state) => state.createSupportCase);
+  const requestedOrder = new URLSearchParams(location.search).get("order");
+  const deliveredOrders = orders.filter((order) => order.status === "delivered");
+  const [orderId, setOrderId] = useState(requestedOrder && deliveredOrders.some((order) => order.orderId === requestedOrder) ? requestedOrder : deliveredOrders[0]?.orderId ?? "");
+  const [kind, setKind] = useState<keyof typeof supportGuidance>("return");
+  const [summary, setSummary] = useState("");
+  const submit = (event: FormEvent) => { event.preventDefault(); if (!orderId || summary.trim().length < 10) return; createSupportCase({ orderId, kind, summary: summary.trim() }); setSummary(""); };
+  return (
+    <main className="page-shell">
+      <header className="page-intro"><p className="kicker">After-sales companion</p><h1>Make the next step clear.</h1><p>Describe the problem in plain language. Pricewise structures the request and shows what evidence to keep before you contact the retailer.</p></header>
+      {!deliveredOrders.length ? <section className="orders-empty"><h2>No delivered order yet.</h2><p>After-sales guidance unlocks when an order is marked delivered.</p><Link className="button button-primary" to="/orders">View purchase journeys</Link></section> : <div className="support-layout">
+        <form className="support-form" onSubmit={submit}>
+          <div><p className="kicker">Start a case</p><h2>What needs to be resolved?</h2></div>
+          <label>Product<select value={orderId} onChange={(event) => setOrderId(event.target.value)}>{deliveredOrders.map((order) => <option value={order.orderId} key={order.orderId}>{order.title}</option>)}</select></label>
+          <fieldset><legend>Preferred resolution</legend><div className="support-kinds">{(Object.keys(supportGuidance) as Array<keyof typeof supportGuidance>).map((value) => <label className={kind === value ? "selected" : ""} key={value}><input type="radio" name="kind" checked={kind === value} onChange={() => setKind(value)} /><span>{value}</span></label>)}</div></fieldset>
+          <label>What happened?<textarea required minLength={10} value={summary} onChange={(event) => setSummary(event.target.value)} placeholder="Include what went wrong, when you noticed it, and the outcome you want." /></label>
+          <button className="button button-primary" type="submit">Create support draft</button>
+          <p className="support-disclosure">This creates a private draft. Pricewise does not submit it to the retailer yet.</p>
+        </form>
+        <aside className="support-guidance"><p className="kicker">Before you contact support</p><h2>{kind.charAt(0).toUpperCase() + kind.slice(1)} checklist</h2><ol>{supportGuidance[kind].map((item, index) => <li key={item}><span>0{index + 1}</span><p>{item}</p></li>)}</ol></aside>
+      </div>}
+      {supportCases.length > 0 && <section className="case-list"><header><p className="kicker">Prepared requests</p><h2>Your support drafts</h2></header>{supportCases.map((supportCase) => { const order = orders.find((item) => item.orderId === supportCase.orderId); return <article key={supportCase.id}><div><span>{supportCase.kind}</span><h3>{order?.title ?? "Product support request"}</h3><p>{supportCase.summary}</p></div><time>{new Date(supportCase.createdAt).toLocaleDateString("en-IN")}</time></article>; })}</section>}
     </main>
   );
 }
@@ -314,6 +352,7 @@ export default function App() {
         <Route path="/saved" element={<SavedPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/support" element={<SupportPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
