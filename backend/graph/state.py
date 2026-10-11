@@ -22,6 +22,7 @@ class ProductResult(BaseModel):
     specs: dict = Field(default_factory=dict)
     rating: Optional[float] = None
     review_count: Optional[int] = Field(default=None, ge=0)
+    image_url: Optional[str] = None
 
 
 class SaleEvent(BaseModel):

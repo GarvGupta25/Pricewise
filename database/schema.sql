@@ -15,6 +15,7 @@ CREATE TABLE products (
     current_price INT,
     rating NUMERIC(2,1),
     review_count INT,
+    image_url TEXT,
     embedding VECTOR(768),
     last_scraped_at TIMESTAMPTZ DEFAULT now(),
     created_at TIMESTAMPTZ DEFAULT now(),

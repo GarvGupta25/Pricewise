@@ -48,7 +48,7 @@ class Database:
     ) -> list[dict[str, Any]]:
         """Return fresh deterministic cache matches, most recently scraped first."""
         query = """
-            SELECT id, source_site, source_url, title, brand, category, specs,
+            SELECT id, source_site, source_url, title, brand, category, specs, image_url,
                    current_price, rating, review_count, last_scraped_at
             FROM products
             WHERE last_scraped_at >= now() - ($1::text || ' hours')::interval
@@ -70,7 +70,7 @@ class Database:
         """Return fresh cache matches ordered by pgvector cosine distance."""
         vector_literal = "[" + ",".join(str(float(value)) for value in embedding) + "]"
         query = """
-            SELECT id, source_site, source_url, title, brand, category, specs,
+            SELECT id, source_site, source_url, title, brand, category, specs, image_url,
                    current_price, rating, review_count, last_scraped_at,
                    1 - (embedding <=> $1::vector) AS relevance_score
             FROM products
@@ -98,6 +98,7 @@ class Database:
         current_price: int,
         rating: float | None,
         review_count: int | None,
+        image_url: str | None,
         embedding: Sequence[float] | None = None,
     ) -> UUID:
         """Cache a scrape and append its integer-INR price to price history."""
@@ -111,9 +112,9 @@ class Database:
         query = """
             INSERT INTO products (
                 source_site, source_url, title, brand, category, specs,
-                current_price, rating, review_count, embedding, last_scraped_at
+                current_price, rating, review_count, image_url, embedding, last_scraped_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10::vector, now())
+            VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11::vector, now())
             ON CONFLICT (source_url) DO UPDATE SET
                 source_site = EXCLUDED.source_site,
                 title = EXCLUDED.title,
@@ -123,6 +124,7 @@ class Database:
                 current_price = EXCLUDED.current_price,
                 rating = EXCLUDED.rating,
                 review_count = EXCLUDED.review_count,
+                image_url = COALESCE(EXCLUDED.image_url, products.image_url),
                 embedding = COALESCE(EXCLUDED.embedding, products.embedding),
                 last_scraped_at = now()
             RETURNING id
@@ -139,6 +141,7 @@ class Database:
                 current_price,
                 rating,
                 review_count,
+                image_url,
                 vector_literal,
             )
             await connection.execute(

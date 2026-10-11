@@ -22,6 +22,7 @@ class ScrapedProduct(BaseModel):
     specs: dict[str, Any] = Field(default_factory=dict)
     rating: float | None = None
     review_count: int | None = Field(default=None, ge=0)
+    image_url: str | None = None
 
 
 class _ProductExtraction(BaseModel):
@@ -32,11 +33,13 @@ class _ProductExtraction(BaseModel):
     price: int | None = Field(default=None, ge=0, description="Whole INR only")
     rating: float | None = None
     review_count: int | None = Field(default=None, ge=0)
+    image_url: str | None = None
 
 
 _EXTRACTION_PROMPT = (
     "Extract one purchasable product only. Return its displayed current price in whole INR, "
-    "not an EMI amount or discount. Do not estimate missing values."
+    "not an EMI amount or discount. Return the primary product image URL when it is present. "
+    "Do not estimate missing values."
 )
 
 
@@ -140,6 +143,7 @@ class FirecrawlClient:
         try:
             extracted = _ProductExtraction.model_validate(structured)
             native_product = data.get("product") if isinstance(data.get("product"), dict) else {}
+            metadata = data.get("metadata") if isinstance(data.get("metadata"), dict) else {}
             title = extracted.title or native_product.get("title") or data.get("metadata", {}).get("title")
             price = extracted.price or _native_product_price(native_product) or _price_from_markdown(data.get("markdown", ""))
             if not isinstance(title, str) or not isinstance(price, int) or price <= 0:
@@ -155,6 +159,12 @@ class FirecrawlClient:
                 specs={},
                 rating=extracted.rating,
                 review_count=extracted.review_count,
+                image_url=_safe_image_url(
+                    extracted.image_url
+                    or native_product.get("image")
+                    or metadata.get("ogImage")
+                    or metadata.get("og:image")
+                ),
             )
         except ValueError:
             return None
@@ -184,6 +194,14 @@ def _price_from_markdown(markdown: str) -> int | None:
     if not match:
         return None
     return int(match.group(1).replace(",", ""))
+
+
+def _safe_image_url(value: object) -> str | None:
+    """Keep only ordinary HTTPS image URLs suitable for a browser card."""
+    if not isinstance(value, str) or len(value) > 2_000:
+        return None
+    parsed = urlparse(value.strip())
+    return value.strip() if parsed.scheme == "https" and bool(parsed.hostname) else None
 
 
 def _looks_like_product_url(url: str) -> bool:

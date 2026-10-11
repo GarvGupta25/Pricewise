@@ -81,6 +81,7 @@ def _result_payload(state: dict[str, Any]) -> dict[str, Any]:
                 "history_points": candidate.get("history_points", len(history)),
                 "rating": item.get("rating"),
                 "review_count": item.get("review_count"),
+                "image_url": item.get("image_url") or candidate.get("image_url"),
                 "price_history": [point.model_dump() if hasattr(point, "model_dump") else point for point in history],
                 "price_data_status": candidate.get("price_data_status", "insufficient_data"),
             }

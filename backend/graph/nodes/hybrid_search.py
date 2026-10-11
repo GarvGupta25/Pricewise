@@ -83,6 +83,7 @@ async def hybrid_search_node(
             current_price=product.price,
             rating=product.rating,
             review_count=product.review_count,
+            image_url=product.image_url,
             embedding=product_embedding,
         )
         candidates.append(
@@ -96,6 +97,7 @@ async def hybrid_search_node(
                 "specs": product.specs,
                 "rating": product.rating,
                 "review_count": product.review_count,
+                "image_url": product.image_url,
                 "relevance_score": 0.0,
             }
         )
